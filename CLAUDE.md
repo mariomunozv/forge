@@ -174,6 +174,61 @@ Thin helpers on top of `database/sql` for common patterns:
 - `db.QueryOne`, `db.QueryAll` — scan rows into structs using `db:` tags
 - No full ORM — just reduce boilerplate for standard queries
 
+## Database philosophy
+
+### SQL (PostgreSQL)
+Forge owns the connection and migration layer via the `db` package. `database/sql` is a stable Go standard interface — it doesn't change when drivers update.
+
+### MongoDB (and other NoSQL)
+Forge does **not** wrap MongoDB. The driver API (`go.mongodb.org/mongo-driver/v2`) is the interface — there is no `database/sql` equivalent. Wrapping it would leak the driver version into forge's public API, making upgrades (v2→v3) break framework users anyway.
+
+**Recommended pattern** for MongoDB in a forge app:
+
+```go
+// config/database.go
+package config
+
+import (
+    "context"
+    "log"
+    "os"
+    "time"
+
+    "go.mongodb.org/mongo-driver/v2/mongo"
+    "go.mongodb.org/mongo-driver/v2/mongo/options"
+)
+
+var MongoDB *mongo.Client
+
+func ConnectMongo() {
+    ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+    defer cancel()
+
+    client, err := mongo.Connect(options.Client().ApplyURI(os.Getenv("MONGODB_URL")))
+    if err != nil {
+        log.Fatalf("mongodb: %v", err)
+    }
+    if err := client.Ping(ctx, nil); err != nil {
+        log.Fatalf("mongodb ping: %v", err)
+    }
+    MongoDB = client
+}
+```
+
+```go
+// main.go
+func main() {
+    config.ConnectMongo()
+    defer config.MongoDB.Disconnect(context.Background())
+
+    app := forge.New()
+    config.Setup(app)
+    app.Start(":8080")
+}
+```
+
+This keeps the driver version entirely in the app — no forge upgrade can break it.
+
 ## Dependencies
 - `github.com/spf13/cobra` — CLI
 - `github.com/a-h/templ` — template engine
