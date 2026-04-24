@@ -1,0 +1,38 @@
+package home
+
+import (
+	"fmt"
+
+	"github.com/mariomunozv/forge/example/views/components"
+	"github.com/mariomunozv/forge/example/views/layouts"
+)
+
+type IndexData struct {
+	Username string
+	Posts    []Post
+}
+
+type Post struct {
+	ID    int
+	Title string
+}
+
+templ Index(data IndexData) {
+	@layouts.Application("Home") {
+		<h1>Welcome, { data.Username }!</h1>
+		<div class="posts">
+			for _, post := range data.Posts {
+				@components.Card(components.CardProps{Title: post.Title}) {
+					@components.Button(components.ButtonProps{
+						Label: "Read more",
+						Href:  "/posts/" + itoa(post.ID),
+					})
+				}
+			}
+		</div>
+	}
+}
+
+func itoa(n int) string {
+	return fmt.Sprintf("%d", n)
+}

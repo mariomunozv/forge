@@ -1,0 +1,31 @@
+package layouts
+
+templ Application(title string) {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<title>{ title } — Forge</title>
+		</head>
+		<body>
+			@navbar()
+			<main>
+				{ children... }
+			</main>
+			@footer()
+		</body>
+	</html>
+}
+
+templ navbar() {
+	<nav>
+		<a href="/">Forge App</a>
+	</nav>
+}
+
+templ footer() {
+	<footer>
+		<p>Built with Forge</p>
+	</footer>
+}

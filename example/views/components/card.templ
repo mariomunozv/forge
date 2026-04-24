@@ -1,0 +1,53 @@
+package components
+
+// Card is a reusable card component with an optional slot for body content.
+//
+// Usage:
+//
+//	@components.Card(components.CardProps{Title: "Hello", Subtitle: "World"}) {
+//	    <p>This goes into the slot.</p>
+//	}
+type CardProps struct {
+	Title    string
+	Subtitle string
+}
+
+templ Card(props CardProps) {
+	<div class="card">
+		<div class="card-header">
+			<h3>{ props.Title }</h3>
+			if props.Subtitle != "" {
+				<p class="subtitle">{ props.Subtitle }</p>
+			}
+		</div>
+		<div class="card-body">
+			{ children... }
+		</div>
+	</div>
+}
+
+// Button is a reusable button component.
+type ButtonProps struct {
+	Label   string
+	Href    string
+	Variant string // "primary" | "secondary" | "danger"
+}
+
+templ Button(props ButtonProps) {
+	if props.Href != "" {
+		<a href={ templ.SafeURL(props.Href) } class={ "btn", "btn-" + variant(props.Variant) }>
+			{ props.Label }
+		</a>
+	} else {
+		<button class={ "btn", "btn-" + variant(props.Variant) }>
+			{ props.Label }
+		</button>
+	}
+}
+
+func variant(v string) string {
+	if v == "" {
+		return "primary"
+	}
+	return v
+}

@@ -1,0 +1,24 @@
+# Binary
+forge-bin
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+/vendor/
+
+# templ generated files (optional — some prefer to commit these)
+# *_templ.go
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
