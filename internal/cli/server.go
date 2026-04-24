@@ -40,8 +40,16 @@ func runServer(cmd *cobra.Command, args []string) error {
 		fmt.Println("   install with: go install github.com/a-h/templ/cmd/templ@latest")
 	}
 
-	// Run the Go server.
-	server := exec.Command("go", "run", ".")
+	// Run the Go server with air (hot reload) if available, else go run .
+	var server *exec.Cmd
+	if _, err := exec.LookPath("air"); err == nil {
+		fmt.Println("=> air detected — hot reload enabled")
+		server = exec.Command("air")
+	} else {
+		fmt.Println("=> air not found — using go run . (no hot reload)")
+		fmt.Println("   install air: go install github.com/air-verse/air@latest")
+		server = exec.Command("go", "run", ".")
+	}
 	server.Env = append(os.Environ(), fmt.Sprintf("PORT=%s", serverPort))
 	server.Stdout = os.Stdout
 	server.Stderr = os.Stderr

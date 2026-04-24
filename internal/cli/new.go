@@ -51,6 +51,7 @@ func runNew(cmd *cobra.Command, args []string) error {
 	files := []scaffoldFile{
 		{path: "go.mod", tmpl: goModTmpl},
 		{path: "main.go", tmpl: mainGoTmpl},
+		{path: ".air.toml", tmpl: airTomlTmpl},
 		{path: "config/app.go", tmpl: configAppTmpl},
 		{path: "app/controllers/home_controller.go", tmpl: homeControllerTmpl},
 		{path: "app/views/layouts/application.templ", tmpl: layoutTmpl},
@@ -224,4 +225,25 @@ templ Index(data IndexData) {
 		<p>Your Forge app is running. Go build something.</p>
 	}
 }
+`
+
+var airTomlTmpl = `root = "."
+tmp_dir = "tmp"
+
+[build]
+  cmd = "go build -o tmp/main ."
+  bin = "tmp/main"
+  delay = 200
+  exclude_dir = ["tmp", "vendor", "db"]
+  include_ext = ["go"]
+  exclude_regex = ["_test\\.go", "_templ\\.go"]
+
+[log]
+  time = false
+
+[color]
+  main = "magenta"
+  watcher = "cyan"
+  build = "yellow"
+  runner = "green"
 `
