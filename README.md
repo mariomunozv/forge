@@ -29,15 +29,12 @@ Most Go frameworks give you a router and get out of the way. That's fine — but
 # Install Go 1.22+
 brew install go
 
-# Install templ
-go install github.com/a-h/templ/cmd/templ@latest
-
-# Install air (hot reload)
-go install github.com/air-verse/air@latest
-
-# Install Forge CLI
+# Install Forge — setup handles the rest
 go install github.com/mariomunozv/forge/cmd/forge@latest
+forge setup
 ```
+
+`forge setup` installs `templ` and `air`, and verifies your Go version. If you run `forge server` with missing tools, it'll tell you to run `forge setup` instead of failing silently.
 
 ---
 
