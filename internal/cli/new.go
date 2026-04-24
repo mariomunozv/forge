@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"text/template"
+	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -48,14 +49,19 @@ func runNew(cmd *cobra.Command, args []string) error {
 		fmt.Printf("  create  %s\n", path)
 	}
 
+	version := time.Now().UTC().Format("20060102150405")
 	files := []scaffoldFile{
 		{path: "go.mod", tmpl: goModTmpl},
 		{path: "main.go", tmpl: mainGoTmpl},
 		{path: ".air.toml", tmpl: airTomlTmpl},
+		{path: ".env.example", tmpl: envExampleTmpl},
+		{path: ".gitignore", tmpl: gitignoreTmpl},
 		{path: "config/app.go", tmpl: configAppTmpl},
+		{path: "config/database.go", tmpl: configDBTmpl},
 		{path: "app/controllers/home_controller.go", tmpl: homeControllerTmpl},
 		{path: "app/views/layouts/application.templ", tmpl: layoutTmpl},
 		{path: "app/views/home/index.templ", tmpl: homeViewTmpl},
+		{path: fmt.Sprintf("db/migrations/%s_initial.sql", version), tmpl: initialMigrationTmpl},
 	}
 
 	data := struct{ AppName string }{AppName: appName}
@@ -73,6 +79,8 @@ func runNew(cmd *cobra.Command, args []string) error {
 
 	fmt.Printf("\nDone! Your Forge app is ready.\n\n")
 	fmt.Printf("  cd %s\n", appName)
+	fmt.Printf("  cp .env.example .env   # set your DATABASE_URL\n")
+	fmt.Printf("  forge db migrate\n")
 	fmt.Printf("  forge server\n\n")
 
 	return nil
@@ -159,6 +167,9 @@ import (
 )
 
 func main() {
+	config.ConnectDB()
+	defer config.DB.Close()
+
 	app := forge.New()
 	config.Setup(app)
 	app.Start(":8080")
@@ -225,6 +236,40 @@ templ Index(data IndexData) {
 		<p>Your Forge app is running. Go build something.</p>
 	}
 }
+`
+
+var configDBTmpl = `package config
+
+import (
+	"database/sql"
+	"log"
+
+	"github.com/mariomunozv/forge/db"
+)
+
+// DB is the global database connection. Initialized by ConnectDB.
+var DB *sql.DB
+
+func ConnectDB() {
+	conn, err := db.Open()
+	if err != nil {
+		log.Fatalf("database: %v", err)
+	}
+	DB = conn
+}
+`
+
+var envExampleTmpl = `DATABASE_URL=postgres://localhost/{{.AppName}}_development?sslmode=disable
+`
+
+var gitignoreTmpl = `.env
+tmp/
+`
+
+var initialMigrationTmpl = `-- migrate:up
+
+
+-- migrate:down
 `
 
 var airTomlTmpl = `root = "."
