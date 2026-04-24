@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"text/template"
 
@@ -33,6 +34,7 @@ func runNew(cmd *cobra.Command, args []string) error {
 		"app/controllers",
 		"app/models",
 		"app/views/layouts",
+		"app/views/home",
 		"config",
 		"db/migrations",
 		"public",
@@ -51,8 +53,8 @@ func runNew(cmd *cobra.Command, args []string) error {
 		{path: "main.go", tmpl: mainGoTmpl},
 		{path: "config/app.go", tmpl: configAppTmpl},
 		{path: "app/controllers/home_controller.go", tmpl: homeControllerTmpl},
-		{path: "app/views/layouts/application.html", tmpl: layoutTmpl},
-		{path: "app/views/home/index.html", tmpl: homeViewTmpl},
+		{path: "app/views/layouts/application.templ", tmpl: layoutTmpl},
+		{path: "app/views/home/index.templ", tmpl: homeViewTmpl},
 	}
 
 	data := struct{ AppName string }{AppName: appName}
@@ -63,10 +65,55 @@ func runNew(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	fmt.Println()
+	if err := runPostScaffold(appName); err != nil {
+		return err
+	}
+
 	fmt.Printf("\nDone! Your Forge app is ready.\n\n")
 	fmt.Printf("  cd %s\n", appName)
-	fmt.Printf("  go mod tidy\n")
 	fmt.Printf("  forge server\n\n")
+
+	return nil
+}
+
+func runPostScaffold(appName string) error {
+	steps := []struct {
+		label string
+		name  string
+		args  []string
+		warn  string
+	}{
+		{
+			label: "Fetching forge dependency...",
+			name:  "go",
+			args:  []string{"get", "github.com/mariomunozv/forge@latest"},
+			warn:  "could not fetch forge — run 'go get github.com/mariomunozv/forge@latest' manually",
+		},
+		{
+			label: "Running go mod tidy...",
+			name:  "go",
+			args:  []string{"mod", "tidy"},
+			warn:  "go mod tidy failed — run it manually inside your app directory",
+		},
+		{
+			label: "Generating templ files...",
+			name:  "templ",
+			args:  []string{"generate"},
+			warn:  "templ not found — install with: go install github.com/a-h/templ/cmd/templ@latest\n   then run 'templ generate' in your app directory",
+		},
+	}
+
+	for _, s := range steps {
+		fmt.Printf("=> %s\n", s.label)
+		c := exec.Command(s.name, s.args...)
+		c.Dir = appName
+		c.Stdout = os.Stdout
+		c.Stderr = os.Stderr
+		if err := c.Run(); err != nil {
+			fmt.Printf("   warning: %s\n", s.warn)
+		}
+	}
 
 	return nil
 }
@@ -101,8 +148,6 @@ func writeTemplate(appName string, f scaffoldFile, data any) error {
 var goModTmpl = `module github.com/{{.AppName}}
 
 go 1.22
-
-require github.com/mariomunozv/forge latest
 `
 
 var mainGoTmpl = `package main
@@ -114,45 +159,69 @@ import (
 
 func main() {
 	app := forge.New()
-	config.Routes(app)
+	config.Setup(app)
 	app.Start(":8080")
 }
 `
 
 var configAppTmpl = `package config
 
-import "github.com/mariomunozv/forge"
+import (
+	"github.com/{{.AppName}}/app/controllers"
+	"github.com/mariomunozv/forge"
+)
 
-func Routes(app *forge.App) {
+func Setup(app *forge.App) {
+	app.Register("home", &controllers.HomeController{})
 	app.GET("/", "home#index")
 }
 `
 
 var homeControllerTmpl = `package controllers
 
-import "github.com/mariomunozv/forge"
+import (
+	home "github.com/{{.AppName}}/app/views/home"
+	"github.com/mariomunozv/forge"
+)
 
 type HomeController struct{}
 
 func (c *HomeController) Index(ctx *forge.Context) error {
-	return ctx.Render("home/index", forge.M{
-		"title": "Welcome to Forge",
-	})
+	return ctx.Component(home.Index(home.IndexData{
+		AppName: "{{.AppName}}",
+	}))
 }
 `
 
-var layoutTmpl = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>{{"{{"}} .title {{"}}"}}</title>
-</head>
-<body>
-  {{"{{"}} yield {{"}}"}}
-</body>
-</html>
+var layoutTmpl = `package layouts
+
+templ Application(title string) {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<title>{ title }</title>
+		</head>
+		<body>
+			{ children... }
+		</body>
+	</html>
+}
 `
 
-var homeViewTmpl = `<h1>{{"{{"}} .title {{"}}"}}</h1>
-<p>Your Forge app is running. Go build something.</p>
+var homeViewTmpl = `package home
+
+import "github.com/{{.AppName}}/app/views/layouts"
+
+type IndexData struct {
+	AppName string
+}
+
+templ Index(data IndexData) {
+	@layouts.Application("Welcome") {
+		<h1>Welcome to { data.AppName }!</h1>
+		<p>Your Forge app is running. Go build something.</p>
+	}
+}
 `
