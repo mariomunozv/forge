@@ -154,25 +154,34 @@ Field types: `string/str/text`, `int/integer`, `int64`, `float/float64/decimal`,
 - [x] templ integration: `ctx.Component()`, `forge server` auto-watches
 - [x] `forgetest` package: fluent test API with JSON path assertions
 - [x] Generators: `controller`, `model`, `view`, `resource`, `migration`
-- [x] `forge new` generates proper `.templ` scaffold, runs `go get` + `templ generate` post-scaffold
-- [x] `forge server` uses `air` for hot reload if available, falls back to `go run .`
+- [x] `forge new` scaffold: `.templ` views, DB wired, `.env.example`, `.gitignore`, migration inicial
+- [x] `forge server` usa `air` para hot reload si está disponible, fallback a `go run .`
 - [x] `middleware` package: `Logger`, `Recovery`, `CORS`
 - [x] `db` package: `Open()`, `Migrate()`, `Rollback()`, `Status()` — PostgreSQL via `lib/pq`
 - [x] `forge db migrate` / `forge db rollback` / `forge db status`
-- [x] `forge g migration [name]` — generates timestamped `.sql` file with up/down sections
+- [x] `forge g migration [name]` — genera `.sql` con timestamp y secciones up/down
+- [x] `db.QueryOne[T]` / `db.QueryAll[T]` — helpers genéricos con scanning por tags `db:`
+- [x] `forge describe` — estructura del app como JSON + `--md` genera `FORGE.md`
 
 ## What's next (pending — in recommended order)
 
-### 1. `forge describe` — AI agent introspection
-A command that outputs the full app structure as JSON: routes, controllers, models, views, migrations. Meant to be fed as context to an AI agent working on the codebase. Also generates a `FORGE.md` (like this CLAUDE.md but for the app being built).
+### 1. `forge db create` / `forge db drop`
+Crear y eliminar la base de datos desde el CLI leyendo `DATABASE_URL`. Completa el workflow de setup inicial sin tener que usar psql.
 
-### 2. `forge new` wires database by default
-Update the scaffold to include `config/database.go` that calls `db.Open()` on startup, and a sample migration. Makes `forge new myapp && forge db migrate` work end-to-end.
+### 2. Insert / Update / Delete helpers en `db`
+Complemento de `QueryOne`/`QueryAll`:
+- `db.Insert(conn, "users", map[string]any{...})` — INSERT con RETURNING id
+- `db.Update(conn, "users", id, map[string]any{...})` — UPDATE por id
+- `db.Delete(conn, "users", id)` — DELETE por id
 
-### 3. Query helpers
-Thin helpers on top of `database/sql` for common patterns:
-- `db.QueryOne`, `db.QueryAll` — scan rows into structs using `db:` tags
-- No full ORM — just reduce boilerplate for standard queries
+### 3. Validaciones en modelos generados
+`forge g model` ya genera un `Validate()` básico. Mejorarlo con:
+- Validación de formato (email, URL)
+- Unicidad (requiere consulta a DB)
+- Integración con `ctx.Error()` en controllers
+
+### 4. `forge console` — REPL interactivo
+Arrancar un shell Go con el contexto del app cargado (DB conectada, modelos disponibles). Similar a `rails console`. Requiere evaluador Go en runtime — complejo, puede usar `yaegi` o simplemente `go run` con un script generado.
 
 ## Database philosophy
 
