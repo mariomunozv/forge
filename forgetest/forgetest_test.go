@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/mariomunozv/forge/forge"
+	"github.com/mariomunozv/forge"
 	"github.com/mariomunozv/forge/forgetest"
 )
 

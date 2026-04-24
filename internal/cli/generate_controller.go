@@ -60,7 +60,7 @@ var controllerTmpl = `package controllers
 import (
 	"net/http"
 
-	"github.com/mariomunozv/forge/forge"
+	"github.com/mariomunozv/forge"
 )
 
 type {{.Name}}Controller struct{}

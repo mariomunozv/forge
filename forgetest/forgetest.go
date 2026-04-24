@@ -20,7 +20,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/mariomunozv/forge/forge"
+	"github.com/mariomunozv/forge"
 )
 
 // TestApp wraps a forge.App for testing.

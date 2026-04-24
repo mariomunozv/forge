@@ -15,6 +15,11 @@ type Context struct {
 	Params   map[string]string
 }
 
+// NewContext creates a new Context. Useful for testing middleware directly.
+func NewContext(w http.ResponseWriter, r *http.Request, params map[string]string) *Context {
+	return newContext(w, r, params)
+}
+
 func newContext(w http.ResponseWriter, r *http.Request, params map[string]string) *Context {
 	p := make(map[string]string, len(params))
 	for k, v := range params {

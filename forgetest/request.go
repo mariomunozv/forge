@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/mariomunozv/forge/forge"
+	"github.com/mariomunozv/forge"
 )
 
 // RequestBuilder builds and executes a test HTTP request.
