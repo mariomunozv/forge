@@ -163,25 +163,29 @@ Field types: `string/str/text`, `int/integer`, `int64`, `float/float64/decimal`,
 - [x] `db.QueryOne[T]` / `db.QueryAll[T]` — helpers genéricos con scanning por tags `db:`
 - [x] `forge describe` — estructura del app como JSON + `--md` genera `FORGE.md`
 
+## What's built ✓ (continued)
+- [x] `forge db create` / `forge db drop` — create/drop DB from DATABASE_URL
+- [x] `db.Insert()`, `db.Update()`, `db.Delete()` — CRUD helpers with safe identifier quoting
+- [x] Model validations: `email` and `url` field types with `isEmail()`/`isURL()` in `app/models/validate.go`
+- [x] `ctx.Validate(model)` — writes 422 if `Validate()` returns errors
+- [x] `middleware.DevErrors()` — HTML error page with source highlighting, stack trace, request info
+
 ## What's next (pending — in recommended order)
 
-### 1. `forge db create` / `forge db drop`
-Crear y eliminar la base de datos desde el CLI leyendo `DATABASE_URL`. Completa el workflow de setup inicial sin tener que usar psql.
+### 1. `forge console` — interactive REPL
+Launch a Go shell with app context loaded (DB connected, models available). Similar to `rails console`. Complex — Go has no native REPL. Options: `yaegi` interpreter or a generated script approach.
 
-### 2. Insert / Update / Delete helpers en `db`
-Complemento de `QueryOne`/`QueryAll`:
-- `db.Insert(conn, "users", map[string]any{...})` — INSERT con RETURNING id
-- `db.Update(conn, "users", id, map[string]any{...})` — UPDATE por id
-- `db.Delete(conn, "users", id)` — DELETE por id
+### 2. Authentication scaffold
+`forge g auth` — generates User model with password hashing (bcrypt), session/JWT middleware, login/logout controller. Most apps need this and it's repetitive to write from scratch.
 
-### 3. Validaciones en modelos generados
-`forge g model` ya genera un `Validate()` básico. Mejorarlo con:
-- Validación de formato (email, URL)
-- Unicidad (requiere consulta a DB)
-- Integración con `ctx.Error()` en controllers
+### 3. Background jobs
+Simple job queue backed by PostgreSQL (no Redis dependency):
+- `forge g job SendWelcomeEmail`
+- `forge jobs work` — starts a worker process
+- Jobs stored in `background_jobs` table with status, attempts, errors
 
-### 4. `forge console` — REPL interactivo
-Arrancar un shell Go con el contexto del app cargado (DB conectada, modelos disponibles). Similar a `rails console`. Requiere evaluador Go en runtime — complejo, puede usar `yaegi` o simplemente `go run` con un script generado.
+### 4. `forge deploy` — production checklist
+Pre-deploy validation: runs tests, checks for missing env vars, verifies migrations are up to date, builds the binary. Optional Dockerfile generation.
 
 ## Database philosophy
 
