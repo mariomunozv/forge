@@ -111,6 +111,19 @@ func (c *Context) Text(status int, body string) error {
 	return err
 }
 
+// Validate calls v.Validate() and writes a 422 error response if there are errors.
+// Returns the error so the handler can return it directly.
+//
+//	if err := ctx.Validate(&post); err != nil {
+//	    return err
+//	}
+func (c *Context) Validate(v interface{ Validate() []string }) error {
+	if errs := v.Validate(); len(errs) > 0 {
+		return c.Error(http.StatusUnprocessableEntity, strings.Join(errs, "; "))
+	}
+	return nil
+}
+
 // Status writes only a status code with no body.
 func (c *Context) Status(code int) error {
 	c.Response.WriteHeader(code)

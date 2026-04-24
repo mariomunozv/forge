@@ -21,10 +21,11 @@ func init() {
 }
 
 type modelData struct {
-	Name      string  // "User"
-	SnakeName string  // "user"
-	Fields    []Field // parsed fields
-	HasTime   bool    // true if any field uses time.Time
+	Name            string  // "User"
+	SnakeName       string  // "user"
+	Fields          []Field // parsed fields
+	HasTime         bool    // true if any field uses time.Time
+	HasValidation   bool    // true if any field has email/url validation
 }
 
 func runGenerateModel(cmd *cobra.Command, args []string) error {
@@ -33,6 +34,7 @@ func runGenerateModel(cmd *cobra.Command, args []string) error {
 
 	fields := make([]Field, 0, len(rawFields))
 	hasTime := false
+	hasValidation := false
 
 	for _, raw := range rawFields {
 		f, err := parseField(raw)
@@ -42,14 +44,25 @@ func runGenerateModel(cmd *cobra.Command, args []string) error {
 		if f.GoType == "time.Time" {
 			hasTime = true
 		}
+		if f.ValidationType != "" {
+			hasValidation = true
+		}
 		fields = append(fields, f)
 	}
 
 	data := modelData{
-		Name:      pascal(name),
-		SnakeName: snake(name),
-		Fields:    fields,
-		HasTime:   hasTime,
+		Name:          pascal(name),
+		SnakeName:     snake(name),
+		Fields:        fields,
+		HasTime:       hasTime,
+		HasValidation: hasValidation,
+	}
+
+	// Ensure validate.go exists in app/models/ when validation helpers are needed.
+	if hasValidation {
+		if err := ensureFile("app/models/validate.go", modelsValidateTmpl, nil); err != nil {
+			return err
+		}
 	}
 
 	path := fmt.Sprintf("app/models/%s.go", data.SnakeName)
@@ -77,7 +90,6 @@ func ({{.Name}}) Table() string {
 	return "{{.SnakeName}}s"
 }
 
-// String helpers for filtering — generated fields: {{range .Fields}}{{.JSONName}} {{end}}
 var {{.Name}}Fields = []string{
 	{{- range .Fields}}
 	"{{.JSONName}}",
@@ -89,7 +101,15 @@ func (m *{{.Name}}) Validate() []string {
 	{{- if .Fields}}
 	var errs []string
 	{{- range .Fields}}
-	{{- if eq .GoType "string"}}
+	{{- if eq .ValidationType "email"}}
+	if !isEmail(m.{{.Name}}) {
+		errs = append(errs, "{{.JSONName}} must be a valid email address")
+	}
+	{{- else if eq .ValidationType "url"}}
+	if !isURL(m.{{.Name}}) {
+		errs = append(errs, "{{.JSONName}} must be a valid URL")
+	}
+	{{- else if eq .GoType "string"}}
 	if m.{{.Name}} == "" {
 		errs = append(errs, "{{.JSONName}} is required")
 	}
@@ -101,7 +121,25 @@ func (m *{{.Name}}) Validate() []string {
 	{{- end}}
 }
 ` + func() string {
-	// suppress unused import warning in template if no fields use strings package
 	_ = strings.ToLower
 	return ""
 }()
+
+var modelsValidateTmpl = `package models
+
+import (
+	"net/url"
+	"regexp"
+)
+
+var emailRe = regexp.MustCompile(` + "`" + `^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$` + "`" + `)
+
+func isEmail(s string) bool {
+	return s != "" && emailRe.MatchString(s)
+}
+
+func isURL(s string) bool {
+	u, err := url.ParseRequestURI(s)
+	return err == nil && u.Scheme != "" && u.Host != ""
+}
+`

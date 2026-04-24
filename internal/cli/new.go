@@ -59,6 +59,7 @@ func runNew(cmd *cobra.Command, args []string) error {
 		{path: "config/app.go", tmpl: configAppTmpl},
 		{path: "config/database.go", tmpl: configDBTmpl},
 		{path: "app/controllers/home_controller.go", tmpl: homeControllerTmpl},
+		{path: "app/models/validate.go", tmpl: modelsValidateTmpl},
 		{path: "app/views/layouts/application.templ", tmpl: layoutTmpl},
 		{path: "app/views/home/index.templ", tmpl: homeViewTmpl},
 		{path: fmt.Sprintf("db/migrations/%s_initial.sql", version), tmpl: initialMigrationTmpl},

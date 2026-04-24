@@ -99,10 +99,11 @@ func singular(s string) string {
 
 // Field represents a model field parsed from "name:type"
 type Field struct {
-	Name     string // pascal case: "UserName"
-	JSONName string // snake case: "user_name"
-	DBName   string // snake case: "user_name"
-	GoType   string // "string", "int", "bool", etc.
+	Name           string // pascal case: "UserName"
+	JSONName       string // snake case: "user_name"
+	DBName         string // snake case: "user_name"
+	GoType         string // "string", "int", "bool", etc.
+	ValidationType string // "email", "url", or "" for default required check
 }
 
 func parseField(raw string) (Field, error) {
@@ -117,16 +118,21 @@ func parseField(raw string) (Field, error) {
 	}
 	snakeName := snake(name)
 	return Field{
-		Name:     pascal(name),
-		JSONName: snakeName,
-		DBName:   snakeName,
-		GoType:   goType,
+		Name:           pascal(name),
+		JSONName:       snakeName,
+		DBName:         snakeName,
+		GoType:         goType,
+		ValidationType: validationType(typ),
 	}, nil
 }
 
 func mapType(t string) (string, error) {
 	switch strings.ToLower(t) {
 	case "string", "str", "text":
+		return "string", nil
+	case "email":
+		return "string", nil
+	case "url", "uri":
 		return "string", nil
 	case "int", "integer":
 		return "int", nil
@@ -139,11 +145,30 @@ func mapType(t string) (string, error) {
 	case "time", "datetime", "timestamp":
 		return "time.Time", nil
 	default:
-		return "", fmt.Errorf("unknown field type %q — supported: string, int, int64, float, bool, time", t)
+		return "", fmt.Errorf("unknown field type %q — supported: string, int, int64, float, bool, time, email, url", t)
+	}
+}
+
+func validationType(t string) string {
+	switch strings.ToLower(t) {
+	case "email":
+		return "email"
+	case "url", "uri":
+		return "url"
+	default:
+		return ""
 	}
 }
 
 // --- file writer ---
+
+// ensureFile creates path only if it doesn't already exist.
+func ensureFile(path string, tmpl string, data any) error {
+	if _, err := os.Stat(path); err == nil {
+		return nil
+	}
+	return writeGeneratedFile(path, tmpl, data)
+}
 
 func writeGeneratedFile(path string, tmpl string, data any) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
