@@ -153,31 +153,26 @@ Field types: `string/str/text`, `int/integer`, `int64`, `float/float64/decimal`,
 - [x] Content negotiation: `ctx.WantsJSON()` + `ctx.Respond()`
 - [x] templ integration: `ctx.Component()`, `forge server` auto-watches
 - [x] `forgetest` package: fluent test API with JSON path assertions
-- [x] Generators: `controller`, `model`, `view`, `resource`
+- [x] Generators: `controller`, `model`, `view`, `resource`, `migration`
+- [x] `forge new` generates proper `.templ` scaffold, runs `go get` + `templ generate` post-scaffold
+- [x] `forge server` uses `air` for hot reload if available, falls back to `go run .`
+- [x] `middleware` package: `Logger`, `Recovery`, `CORS`
+- [x] `db` package: `Open()`, `Migrate()`, `Rollback()`, `Status()` — PostgreSQL via `lib/pq`
+- [x] `forge db migrate` / `forge db rollback` / `forge db status`
+- [x] `forge g migration [name]` — generates timestamped `.sql` file with up/down sections
 
 ## What's next (pending — in recommended order)
 
-### 1. Fix `forge new` scaffold → templ (blocker)
-`forge new` generates `.html` files but the framework uses templ. Update `internal/cli/new.go` so the generated app has proper `.templ` layouts and views, a working `go.mod` with the correct module path, and `main.go` that wires controllers + templ views end-to-end. This makes `forge new myapp && cd myapp && forge server` actually work.
+### 1. `forge describe` — AI agent introspection
+A command that outputs the full app structure as JSON: routes, controllers, models, views, migrations. Meant to be fed as context to an AI agent working on the codebase. Also generates a `FORGE.md` (like this CLAUDE.md but for the app being built).
 
-### 2. Hot reload in `forge server` (air integration)
-`forge server` currently runs `go run .` which doesn't reload on file changes. Integrate `air` so the server restarts automatically when `.go` or `_templ.go` files change. The templ watcher already runs — air handles the Go side.
+### 2. `forge new` wires database by default
+Update the scaffold to include `config/database.go` that calls `db.Open()` on startup, and a sample migration. Makes `forge new myapp && forge db migrate` work end-to-end.
 
-### 3. Middleware (logger, CORS, recovery)
-Add built-in middleware in a `forge/middleware` package:
-- `middleware.Logger` — logs method, path, status, duration
-- `middleware.Recovery` — catches panics, returns 500
-- `middleware.CORS` — configurable CORS headers
-Usage: `app.Use(middleware.Logger())`
-
-### 4. Database layer
-Integrate `sqlc` (recommended) or `sqlboiler`. Add:
-- `forge g migration create_users` — generates timestamped migration file
-- `forge db migrate` / `forge db rollback` CLI commands
-- Connection setup convention in `config/database.go`
-
-### 5. `forge describe` — AI agent introspection
-A command that outputs the full app structure as JSON: routes, controllers, models, views. Meant to be fed as context to an AI agent working on the codebase. Also generates a `FORGE.md` file (like this CLAUDE.md but for the app being built, not the framework).
+### 3. Query helpers
+Thin helpers on top of `database/sql` for common patterns:
+- `db.QueryOne`, `db.QueryAll` — scan rows into structs using `db:` tags
+- No full ORM — just reduce boilerplate for standard queries
 
 ## Dependencies
 - `github.com/spf13/cobra` — CLI
