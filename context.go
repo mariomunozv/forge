@@ -13,6 +13,7 @@ type Context struct {
 	Request  *http.Request
 	Response http.ResponseWriter
 	Params   map[string]string
+	Values   map[string]any // per-request store for middleware → handler communication
 }
 
 // NewContext creates a new Context. Useful for testing middleware directly.
@@ -25,7 +26,7 @@ func newContext(w http.ResponseWriter, r *http.Request, params map[string]string
 	for k, v := range params {
 		p[k] = v
 	}
-	return &Context{Request: r, Response: w, Params: p}
+	return &Context{Request: r, Response: w, Params: p, Values: make(map[string]any)}
 }
 
 // Param returns a URL parameter by name (e.g. ":id" → ctx.Param("id")).

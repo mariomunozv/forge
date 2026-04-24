@@ -160,6 +160,21 @@ func validationType(t string) string {
 	}
 }
 
+// readModulePath reads the module path from go.mod in the current directory.
+func readModulePath() string {
+	data, err := os.ReadFile("go.mod")
+	if err != nil {
+		return ""
+	}
+	for _, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "module ") {
+			return strings.TrimSpace(strings.TrimPrefix(line, "module "))
+		}
+	}
+	return ""
+}
+
 // --- file writer ---
 
 // ensureFile creates path only if it doesn't already exist.
