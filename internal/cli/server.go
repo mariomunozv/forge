@@ -31,6 +31,12 @@ func runServer(cmd *cobra.Command, args []string) error {
 	warnMissingTools()
 	printServerBanner(serverPort)
 
+	// One-shot generate to ensure _templ.go files are fresh before air compiles.
+	templOnce := exec.Command("templ", "generate")
+	templOnce.Stdout = os.Stdout
+	templOnce.Stderr = os.Stderr
+	templOnce.Run()
+
 	// Run templ generate --watch in the background.
 	templ := exec.Command("templ", "generate", "--watch")
 	templ.Stdout = os.Stdout
