@@ -7,6 +7,7 @@ Forge is a Rails-inspired Go web framework built for the way people actually bui
 ```bash
 forge new myapp
 cd myapp
+cp .env.example .env && forge db create && forge db migrate
 forge server
 ```
 
@@ -43,7 +44,9 @@ forge setup
 ```bash
 forge new blog
 cd blog
-go mod tidy
+cp .env.example .env   # edit DATABASE_URL with your postgres credentials
+forge db create        # create the database
+forge db migrate       # run migrations
 forge server
 ```
 

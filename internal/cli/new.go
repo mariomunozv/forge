@@ -80,8 +80,9 @@ func runNew(cmd *cobra.Command, args []string) error {
 
 	fmt.Printf("\nDone! Your Forge app is ready.\n\n")
 	fmt.Printf("  cd %s\n", appName)
-	fmt.Printf("  cp .env.example .env   # set your DATABASE_URL\n")
-	fmt.Printf("  forge db migrate\n")
+	fmt.Printf("  cp .env.example .env   # edit DATABASE_URL with your postgres credentials\n")
+	fmt.Printf("  forge db create        # create the database\n")
+	fmt.Printf("  forge db migrate       # run migrations\n")
 	fmt.Printf("  forge server\n\n")
 
 	return nil
@@ -260,7 +261,11 @@ func ConnectDB() {
 }
 `
 
-var envExampleTmpl = `DATABASE_URL=postgres://localhost/{{.AppName}}_development?sslmode=disable
+var envExampleTmpl = `# Format: postgres://user:password@host/dbname?sslmode=disable
+# If running postgres locally with no password: postgres://localhost/{{.AppName}}_development?sslmode=disable
+DATABASE_URL=postgres://localhost/{{.AppName}}_development?sslmode=disable
+
+SESSION_SECRET=change-me-in-production
 `
 
 var gitignoreTmpl = `.env
