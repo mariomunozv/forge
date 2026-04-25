@@ -90,22 +90,28 @@ func runNew(cmd *cobra.Command, args []string) error {
 
 func runPostScaffold(appName string) error {
 	steps := []struct {
-		label string
-		name  string
-		args  []string
-		warn  string
+		label   string
+		name    string
+		args    []string
+		env     []string
+		warn    string
+		fatal   bool
 	}{
 		{
 			label: "Fetching forge dependency...",
 			name:  "go",
 			args:  []string{"get", "github.com/mariomunozv/forge@latest"},
-			warn:  "could not fetch forge — run 'go get github.com/mariomunozv/forge@latest' manually",
+			env:   []string{"GOPROXY=direct"},
+			warn:  "could not fetch forge — run 'GOPROXY=direct go get github.com/mariomunozv/forge@latest' manually",
+			fatal: true,
 		},
 		{
 			label: "Running go mod tidy...",
 			name:  "go",
 			args:  []string{"mod", "tidy"},
-			warn:  "go mod tidy failed — run it manually inside your app directory",
+			env:   []string{"GONOSUMDB=*"},
+			warn:  "go mod tidy failed — run 'go mod tidy' manually inside your app directory",
+			fatal: true,
 		},
 		{
 			label: "Generating templ files...",
@@ -121,8 +127,12 @@ func runPostScaffold(appName string) error {
 		c.Dir = appName
 		c.Stdout = os.Stdout
 		c.Stderr = os.Stderr
+		c.Env = append(os.Environ(), s.env...)
 		if err := c.Run(); err != nil {
-			fmt.Printf("   warning: %s\n", s.warn)
+			fmt.Printf("\n   ✗ %s\n\n", s.warn)
+			if s.fatal {
+				return fmt.Errorf("setup failed at step: %s", s.label)
+			}
 		}
 	}
 
