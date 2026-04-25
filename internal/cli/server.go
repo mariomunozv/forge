@@ -48,7 +48,7 @@ func runServer(cmd *cobra.Command, args []string) error {
 	}
 	server.Env = append(os.Environ(), fmt.Sprintf("PORT=%s", serverPort))
 	server.Stdout = &airBannerFilter{w: os.Stdout}
-	server.Stderr = os.Stderr
+	server.Stderr = &airBannerFilter{w: os.Stderr}
 	if err := server.Start(); err != nil {
 		return fmt.Errorf("could not start server: %w", err)
 	}
