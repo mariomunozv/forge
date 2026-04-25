@@ -51,6 +51,7 @@ func runNew(cmd *cobra.Command, args []string) error {
 
 	version := time.Now().UTC().Format("20060102150405")
 	files := []scaffoldFile{
+		{path: "CLAUDE.md", tmpl: claudeMdTmpl},
 		{path: "go.mod", tmpl: goModTmpl},
 		{path: "main.go", tmpl: mainGoTmpl},
 		{path: ".air.toml", tmpl: airTomlTmpl},
@@ -330,4 +331,168 @@ tmp_dir = "tmp"
   watcher = "cyan"
   build = "yellow"
   runner = "green"
+`
+
+var claudeMdTmpl = `# {{.AppName}}
+
+A [Forge](https://github.com/mariomunozv/forge) web app — Go framework with Rails-like conventions.
+
+## Stack
+- **Go** + **Forge** framework
+- **templ** — type-safe HTML components (compile-time errors, not runtime)
+- **PostgreSQL** via ` + "`lib/pq`" + `
+- **air** — hot reload (` + "`forge server`" + ` starts it automatically)
+
+## Project structure
+` + "```" + `
+app/
+  controllers/   # one file per controller, e.g. posts_controller.go
+  models/        # structs + DB helpers
+  views/
+    layouts/     # application.templ — shared HTML shell
+    <resource>/  # index.templ, show.templ, new.templ, edit.templ
+config/
+  app.go         # route registration (add routes here)
+  database.go    # DB connection
+db/
+  migrations/    # .sql files, run with: forge db migrate
+main.go
+` + "```" + `
+
+## Generators (fastest way to add features)
+` + "```" + `bash
+forge g resource Post title:string body:string published:bool
+# → model, controller, all views (index/show/new/edit), migration
+
+forge g controller Comments index show
+forge g model Comment post_id:int body:string
+forge g view comments index show
+forge g migration add_published_to_posts
+forge g auth          # users table + bcrypt model + sessions controller + login view
+forge g job SendEmail # background job
+` + "```" + `
+
+## Routing — config/app.go
+` + "```" + `go
+app.Register("posts", &controllers.PostsController{})
+app.Resources("posts")        // GET/POST /posts, GET/PUT/DELETE /posts/:id
+app.GET("/about", "home#about")
+app.Use(middleware.Auth())    // global middleware
+` + "```" + `
+
+## Controllers
+` + "```" + `go
+type PostsController struct{}
+
+func (c *PostsController) Index(ctx *forge.Context) error {
+    posts, err := models.AllPosts(config.DB)
+    if err != nil {
+        return ctx.Error(500, "could not load posts")
+    }
+    return ctx.Respond(posts, views.PostsIndex(posts)) // JSON or HTML
+}
+
+func (c *PostsController) Show(ctx *forge.Context) error {
+    id := ctx.Param("id")
+    // ...
+    return ctx.Component(views.PostsShow(post))        // HTML only
+}
+
+func (c *PostsController) Create(ctx *forge.Context) error {
+    var input struct { Title string ` + "`json:\"title\"`" + ` }
+    if err := ctx.Bind(&input); err != nil {
+        return ctx.Error(400, "invalid input")
+    }
+    // ...
+    return ctx.Created(post)                           // JSON 201
+}
+` + "```" + `
+
+## Context API
+` + "```" + `go
+ctx.Param("id")              // URL param
+ctx.Query("page")            // query string
+ctx.Bind(&input)             // decode JSON body into struct
+ctx.WantsJSON()              // true if client wants JSON
+
+ctx.Respond(data, component) // auto: JSON for API, HTML for browser
+ctx.Component(component)     // render a templ component
+ctx.Success(v)               // 200 {"data": v}
+ctx.Created(v)               // 201 {"data": v}
+ctx.Error(status, "msg")     // {"error": {"message": ...}}
+ctx.Redirect(302, "/path")
+
+ctx.SignIn(userID)           // set session cookie
+ctx.SignOut()                // clear session
+ctx.CurrentUserID()          // (int64, bool)
+ctx.Values["current_user_id"] // set by middleware.Auth()
+` + "```" + `
+
+## Views (templ)
+` + "```" + `go
+// app/views/posts/index.templ
+package posts
+
+import "github.com/{{.AppName}}/app/views/layouts"
+
+type IndexData struct{ Posts []models.Post }
+
+templ Index(data IndexData) {
+    @layouts.Application("Posts") {
+        for _, p := range data.Posts {
+            <div>{ p.Title }</div>
+        }
+    }
+}
+` + "```" + `
+
+After editing a ` + "`.templ`" + ` file, ` + "`templ generate`" + ` runs automatically via ` + "`forge server`" + `.
+
+## Database
+` + "```" + `go
+// Migrations: db/migrations/<timestamp>_name.sql
+// -- migrate:up
+// CREATE TABLE posts (...);
+// -- migrate:down
+// DROP TABLE posts;
+
+// Queries
+post, err := db.QueryOne[Post](config.DB, "SELECT * FROM posts WHERE id=$1", id)
+posts, err := db.QueryAll[Post](config.DB, "SELECT * FROM posts ORDER BY created_at DESC")
+
+// CRUD helpers
+id, err := db.Insert(config.DB, "posts", map[string]any{"title": "Hello"})
+err     := db.Update(config.DB, "posts", id, map[string]any{"title": "Updated"})
+err     := db.Delete(config.DB, "posts", id)
+` + "```" + `
+
+Struct tags for scanning:
+` + "```" + `go
+type Post struct {
+    ID        int64     ` + "`db:\"id\"`" + `
+    Title     string    ` + "`db:\"title\"`" + `
+    CreatedAt time.Time ` + "`db:\"created_at\"`" + `
+}
+` + "```" + `
+
+## Auth / sessions
+` + "```" + `bash
+forge g auth   # generates everything
+` + "```" + `
+` + "```" + `go
+// Protect a route
+app.Use(middleware.RequireAuth())
+
+// In a controller
+userID, ok := ctx.CurrentUserID()
+` + "```" + `
+
+## Development commands
+` + "```" + `bash
+forge server          # start dev server with hot reload
+forge db migrate      # run pending migrations
+forge db rollback     # roll back last migration
+forge db status       # show migration state
+forge routes          # list all routes
+` + "```" + `
 `
