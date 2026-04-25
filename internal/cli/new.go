@@ -328,7 +328,7 @@ tmp_dir = "tmp"
 
 [build]
   cmd = "go build -o tmp/main ."
-  bin = "tmp/main"
+  entrypoint = "tmp/main"
   delay = 200
   exclude_dir = ["tmp", "vendor", "db"]
   include_ext = ["go"]
