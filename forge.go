@@ -89,7 +89,11 @@ func (a *App) Start(addr string) error {
 	}
 
 	fmt.Printf("=> Forge listening on http://localhost%s\n", addr)
-	return http.ListenAndServe(addr, a.buildHandler())
+	if err := http.ListenAndServe(addr, a.buildHandler()); err != nil {
+		fmt.Fprintf(os.Stderr, "\nforge: server error: %v\n", err)
+		os.Exit(1)
+	}
+	return nil
 }
 
 // printRoutes prints all registered routes to stdout.
