@@ -12,9 +12,9 @@ func TestRoutesInfo(t *testing.T) {
 
 	routes := app.router.Routes()
 
-	// Resources genera 5 rutas + 1 manual = 6
-	if len(routes) != 6 {
-		t.Fatalf("expected 6 routes, got %d", len(routes))
+	// Resources genera 7 rutas + 1 manual = 8
+	if len(routes) != 8 {
+		t.Fatalf("expected 8 routes, got %d", len(routes))
 	}
 
 	cases := []struct {
@@ -24,8 +24,10 @@ func TestRoutesInfo(t *testing.T) {
 		action     string
 	}{
 		{"GET", "/users", "users", "index"},
-		{"GET", "/users/:id", "users", "show"},
+		{"GET", "/users/new", "users", "new"},
 		{"POST", "/users", "users", "create"},
+		{"GET", "/users/:id", "users", "show"},
+		{"GET", "/users/:id/edit", "users", "edit"},
 		{"PUT", "/users/:id", "users", "update"},
 		{"DELETE", "/users/:id", "users", "destroy"},
 		{"GET", "/", "home", "index"},

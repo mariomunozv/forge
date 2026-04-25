@@ -60,17 +60,23 @@ func (a *App) Register(name string, c Controller) {
 	a.router.registry.set(name, c)
 }
 
-// Resources registers standard RESTful routes for a controller.
+// Resources registers the 7 standard RESTful routes for a controller.
 //
 //	GET    /users          → users#index
-//	GET    /users/:id      → users#show
+//	GET    /users/new      → users#new
 //	POST   /users          → users#create
+//	GET    /users/:id      → users#show
+//	GET    /users/:id/edit → users#edit
 //	PUT    /users/:id      → users#update
 //	DELETE /users/:id      → users#destroy
+//
+// /new and /edit are registered before /:id so exact segments take priority.
 func (a *App) Resources(name string) {
 	a.GET("/"+name, name+"#index")
-	a.GET("/"+name+"/:id", name+"#show")
+	a.GET("/"+name+"/new", name+"#new")
 	a.POST("/"+name, name+"#create")
+	a.GET("/"+name+"/:id", name+"#show")
+	a.GET("/"+name+"/:id/edit", name+"#edit")
 	a.PUT("/"+name+"/:id", name+"#update")
 	a.DELETE("/"+name+"/:id", name+"#destroy")
 }
