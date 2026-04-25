@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -95,34 +96,35 @@ func printServerBanner(port string) {
 	fmt.Println()
 }
 
-// airBannerFilter wraps a writer and drops air's ASCII art banner lines.
+// airBannerFilter buffers output line by line and drops air's ASCII art banner.
 type airBannerFilter struct {
-	w io.Writer
+	w   io.Writer
+	buf []byte
 }
 
-func (f *airBannerFilter) Write(p []byte) (n int, err error) {
-	lines := strings.Split(string(p), "\n")
-	var kept []string
-	for _, line := range lines {
+func (f *airBannerFilter) Write(p []byte) (int, error) {
+	f.buf = append(f.buf, p...)
+	for {
+		idx := bytes.IndexByte(f.buf, '\n')
+		if idx < 0 {
+			break
+		}
+		line := string(f.buf[:idx+1])
+		f.buf = f.buf[idx+1:]
 		if !isAirBannerLine(line) {
-			kept = append(kept, line)
+			fmt.Fprint(f.w, line)
 		}
 	}
-	out := strings.Join(kept, "\n")
-	if strings.TrimSpace(out) == "" {
-		return len(p), nil
-	}
-	_, err = fmt.Fprint(f.w, out)
-	return len(p), err
+	return len(p), nil
 }
 
 func isAirBannerLine(line string) bool {
-	bannerFragments := []string{
-		"/ /\\", "/_/--\\", "| |_) ", "| |_| \\_",
-		"__    _   ___",
+	fragments := []string{
+		"/ /\\", "/_/--\\", "| |_)", "| |_| \\_",
+		"__    _   ___", "__    _",
 	}
-	for _, fragment := range bannerFragments {
-		if strings.Contains(line, fragment) {
+	for _, f := range fragments {
+		if strings.Contains(line, f) {
 			return true
 		}
 	}
