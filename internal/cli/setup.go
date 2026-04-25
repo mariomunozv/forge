@@ -42,7 +42,8 @@ var requiredTools = []tool{
 }
 
 func runSetup(cmd *cobra.Command, args []string) error {
-	fmt.Println("Forge setup\n")
+	fmt.Println("Forge setup")
+	fmt.Println()
 
 	// 1. check Go version
 	if err := checkGo(); err != nil {
