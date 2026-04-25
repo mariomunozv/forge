@@ -85,13 +85,13 @@ func printServerBanner(port string) {
 	fmt.Printf("%s  ██║     ╚██████╔╝██║  ██║╚██████╔╝███████╗%s\n", yellow, reset)
 	fmt.Printf("%s  ╚═╝      ╚═════╝ ╚═╝  ╚═╝ ╚═════╝ ╚══════╝%s\n", yellow, reset)
 	fmt.Println()
-	fmt.Printf("%s  ─────────────────────────────────────────────%s\n", cyan, reset)
+	fmt.Printf("%s  ───────────────────────────────────────────────────────────────────%s\n", cyan, reset)
 	fmt.Printf("  %s%-24s%s %s✓%s ENGINE ONLINE    %s→%s http://localhost:%s\n",
 		yellow, version, reset,
 		green, reset,
 		cyan, reset, port,
 	)
-	fmt.Printf("%s  ─────────────────────────────────────────────%s\n", cyan, reset)
+	fmt.Printf("%s  ───────────────────────────────────────────────────────────────────%s\n", cyan, reset)
 	fmt.Printf("  %sPress Ctrl+C to stop%s\n", dim, reset)
 	fmt.Println()
 }
