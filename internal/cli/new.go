@@ -319,11 +319,11 @@ var airTomlTmpl = `root = "."
 tmp_dir = "tmp"
 
 [build]
-  cmd = "go build -o tmp/main ."
+  cmd = "templ generate && go build -o tmp/main ."
   entrypoint = "tmp/main"
   delay = 200
   exclude_dir = ["tmp", "vendor", "db"]
-  include_ext = ["go"]
+  include_ext = ["go", "templ"]
   exclude_regex = ["_test\\.go", "_templ\\.go"]
 
 [log]
