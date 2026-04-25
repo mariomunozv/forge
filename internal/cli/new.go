@@ -244,20 +244,16 @@ type IndexData struct {
 	AppName string
 }
 
+var forgeLogo = "  ███████╗ ██████╗ ██████╗  ██████╗ ███████╗\n  ██╔════╝██╔═══██╗██╔══██╗██╔════╝ ██╔════╝\n  █████╗  ██║   ██║██████╔╝██║  ███╗█████╗\n  ██╔══╝  ██║   ██║██╔══██╗██║   ██║██╔══╝\n  ██║     ╚██████╔╝██║  ██║╚██████╔╝███████╗\n  ╚═╝      ╚═════╝ ╚═╝  ╚═╝ ╚═════╝ ╚══════╝"
+
 templ Index(data IndexData) {
 	@layouts.Application("Welcome · " + data.AppName) {
 		<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;padding:32px">
 			<div style="max-width:560px;width:100%">
 				<div style="color:#E8FF00;font-size:11px;letter-spacing:4px;margin-bottom:24px;opacity:.7">
-					// FORGE FRAMEWORK
+					{ "// FORGE FRAMEWORK" }
 				</div>
-				<pre style="color:#E8FF00;font-size:13px;line-height:1.3;letter-spacing:1px;text-shadow:0 0 20px rgba(232,255,0,.4);margin-bottom:32px">
-  ███████╗ ██████╗ ██████╗  ██████╗ ███████╗
-  ██╔════╝██╔═══██╗██╔══██╗██╔════╝ ██╔════╝
-  █████╗  ██║   ██║██████╔╝██║  ███╗█████╗
-  ██╔══╝  ██║   ██║██╔══██╗██║   ██║██╔══╝
-  ██║     ╚██████╔╝██║  ██║╚██████╔╝███████╗
-  ╚═╝      ╚═════╝ ╚═╝  ╚═╝ ╚═════╝ ╚══════╝</pre>
+				<pre style="color:#E8FF00;font-size:13px;line-height:1.3;letter-spacing:1px;text-shadow:0 0 20px rgba(232,255,0,.4);margin-bottom:32px">{ forgeLogo }</pre>
 				<div style="border-top:1px solid #252525;padding-top:24px;margin-bottom:24px">
 					<div style="font-size:20px;font-weight:700;color:#F0F0F0;margin-bottom:8px">
 						{ data.AppName }<span style="color:#E8FF00">_</span>
