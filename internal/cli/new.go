@@ -90,12 +90,12 @@ func runNew(cmd *cobra.Command, args []string) error {
 
 func runPostScaffold(appName string) error {
 	steps := []struct {
-		label   string
-		name    string
-		args    []string
-		env     []string
-		warn    string
-		fatal   bool
+		label string
+		name  string
+		args  []string
+		env   []string
+		warn  string
+		fatal bool
 	}{
 		{
 			label: "Fetching forge dependency...",
@@ -106,18 +106,20 @@ func runPostScaffold(appName string) error {
 			fatal: true,
 		},
 		{
+			// templ generate must run before go mod tidy so _templ.go files exist
+			// when Go resolves local package imports.
+			label: "Generating templ files...",
+			name:  "templ",
+			args:  []string{"generate"},
+			warn:  "templ not found — install with: go install github.com/a-h/templ/cmd/templ@latest\n   then run 'templ generate' in your app directory",
+		},
+		{
 			label: "Running go mod tidy...",
 			name:  "go",
 			args:  []string{"mod", "tidy"},
 			env:   []string{"GONOSUMDB=*"},
 			warn:  "go mod tidy failed — run 'go mod tidy' manually inside your app directory",
 			fatal: true,
-		},
-		{
-			label: "Generating templ files...",
-			name:  "templ",
-			args:  []string{"generate"},
-			warn:  "templ not found — install with: go install github.com/a-h/templ/cmd/templ@latest\n   then run 'templ generate' in your app directory",
 		},
 	}
 
