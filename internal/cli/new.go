@@ -228,28 +228,8 @@ templ Application(title string) {
 			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 			<title>{ title }</title>
-			<style>
-				*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-				:root {
-					--col-bg:       #0f0f0f;
-					--col-surface:  #161616;
-					--col-border:   #252525;
-					--col-yellow:   #E8FF00;
-					--col-cyan:     #00D4FF;
-					--col-green:    #39FF5A;
-					--col-text:     #F0F0F0;
-					--col-text-2:   #888888;
-					--font-mono:    ui-monospace, 'SF Mono', Menlo, monospace;
-				}
-				body {
-					background: var(--col-bg);
-					color: var(--col-text);
-					font-family: var(--font-mono);
-					min-height: 100vh;
-				}
-			</style>
 		</head>
-		<body>
+		<body style="box-sizing:border-box;margin:0;padding:0;background:#0f0f0f;color:#F0F0F0;font-family:ui-monospace,'SF Mono',Menlo,monospace;min-height:100vh">
 			{ children... }
 		</body>
 	</html>
