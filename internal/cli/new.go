@@ -248,7 +248,7 @@ var forgeLogo = "  ███████╗ ██████╗ ████�
 
 templ Index(data IndexData) {
 	@layouts.Application("Welcome · " + data.AppName) {
-		<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;padding:32px">
+		<div style="display:flex;align-items:center;justify-content:center;min-height:90vh;padding:32px">
 			<div style="max-width:560px;width:100%">
 				<div style="color:#E8FF00;font-size:11px;letter-spacing:4px;margin-bottom:24px;opacity:.7">
 					{ "// FORGE FRAMEWORK" }
