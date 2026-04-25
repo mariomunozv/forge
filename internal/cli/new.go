@@ -216,6 +216,26 @@ templ Application(title string) {
 			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 			<title>{ title }</title>
+			<style>
+				*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+				:root {
+					--col-bg:       #0f0f0f;
+					--col-surface:  #161616;
+					--col-border:   #252525;
+					--col-yellow:   #E8FF00;
+					--col-cyan:     #00D4FF;
+					--col-green:    #39FF5A;
+					--col-text:     #F0F0F0;
+					--col-text-2:   #888888;
+					--font-mono:    ui-monospace, 'SF Mono', Menlo, monospace;
+				}
+				body {
+					background: var(--col-bg);
+					color: var(--col-text);
+					font-family: var(--font-mono);
+					min-height: 100vh;
+				}
+			</style>
 		</head>
 		<body>
 			{ children... }
@@ -233,9 +253,34 @@ type IndexData struct {
 }
 
 templ Index(data IndexData) {
-	@layouts.Application("Welcome") {
-		<h1>Welcome to { data.AppName }!</h1>
-		<p>Your Forge app is running. Go build something.</p>
+	@layouts.Application("Welcome · " + data.AppName) {
+		<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;padding:32px">
+			<div style="max-width:560px;width:100%">
+				<div style="color:#E8FF00;font-size:11px;letter-spacing:4px;margin-bottom:24px;opacity:.7">
+					// FORGE FRAMEWORK
+				</div>
+				<pre style="color:#E8FF00;font-size:13px;line-height:1.3;letter-spacing:1px;text-shadow:0 0 20px rgba(232,255,0,.4);margin-bottom:32px">
+  ███████╗ ██████╗ ██████╗  ██████╗ ███████╗
+  ██╔════╝██╔═══██╗██╔══██╗██╔════╝ ██╔════╝
+  █████╗  ██║   ██║██████╔╝██║  ███╗█████╗
+  ██╔══╝  ██║   ██║██╔══██╗██║   ██║██╔══╝
+  ██║     ╚██████╔╝██║  ██║╚██████╔╝███████╗
+  ╚═╝      ╚═════╝ ╚═╝  ╚═╝ ╚═════╝ ╚══════╝</pre>
+				<div style="border-top:1px solid #252525;padding-top:24px;margin-bottom:24px">
+					<div style="font-size:20px;font-weight:700;color:#F0F0F0;margin-bottom:8px">
+						{ data.AppName }<span style="color:#E8FF00">_</span>
+					</div>
+					<div style="color:#888;font-size:13px;line-height:1.6">
+						Your Forge app is running.<br/>
+						Go build something.
+					</div>
+				</div>
+				<div style="display:flex;gap:24px;font-size:12px">
+					<span><span style="color:#39FF5A">✓</span> <span style="color:#888">engine online</span></span>
+					<span><span style="color:#00D4FF">→</span> <span style="color:#888">forge g resource Post title:string</span></span>
+				</div>
+			</div>
+		</div>
 	}
 }
 `

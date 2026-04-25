@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -27,10 +28,7 @@ func init() {
 
 func runServer(cmd *cobra.Command, args []string) error {
 	warnMissingTools()
-
-	fmt.Printf("=> Forge server starting on http://localhost:%s\n", serverPort)
-	fmt.Println("=> Press Ctrl+C to stop")
-	fmt.Println()
+	printServerBanner(serverPort)
 
 	// Run templ generate --watch in the background.
 	templ := exec.Command("templ", "generate", "--watch")
@@ -38,31 +36,27 @@ func runServer(cmd *cobra.Command, args []string) error {
 	templ.Stderr = os.Stderr
 	if err := templ.Start(); err != nil {
 		fmt.Println("=> templ watcher skipped (not installed)")
-	} else {
-		fmt.Println("=> templ watching for changes...")
 	}
 
 	// Run with air (hot reload) if available, else go run .
 	var server *exec.Cmd
 	if _, err := exec.LookPath("air"); err == nil {
-		fmt.Println("=> hot reload enabled (air)")
 		server = exec.Command("air")
 	} else {
 		server = exec.Command("go", "run", ".")
 	}
 	server.Env = append(os.Environ(), fmt.Sprintf("PORT=%s", serverPort))
-	server.Stdout = os.Stdout
+	server.Stdout = &airBannerFilter{w: os.Stdout}
 	server.Stderr = os.Stderr
 	if err := server.Start(); err != nil {
 		return fmt.Errorf("could not start server: %w", err)
 	}
 
-	// Wait for Ctrl+C and clean up both processes.
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 	<-quit
 
-	fmt.Println("\n=> Shutting down...")
+	fmt.Println("\n\033[90m=> shutting down...\033[0m")
 	if templ.Process != nil {
 		templ.Process.Kill()
 	}
@@ -70,6 +64,69 @@ func runServer(cmd *cobra.Command, args []string) error {
 		server.Process.Kill()
 	}
 	return nil
+}
+
+// printServerBanner prints the Forge logo and server status.
+func printServerBanner(port string) {
+	version := forgeVersion()
+
+	yellow := "\033[93m"
+	cyan := "\033[96m"
+	green := "\033[92m"
+	dim := "\033[90m"
+	reset := "\033[0m"
+
+	fmt.Println()
+	fmt.Printf("%s  ███████╗ ██████╗ ██████╗  ██████╗ ███████╗%s\n", yellow, reset)
+	fmt.Printf("%s  ██╔════╝██╔═══██╗██╔══██╗██╔════╝ ██╔════╝%s\n", yellow, reset)
+	fmt.Printf("%s  █████╗  ██║   ██║██████╔╝██║  ███╗█████╗  %s\n", yellow, reset)
+	fmt.Printf("%s  ██╔══╝  ██║   ██║██╔══██╗██║   ██║██╔══╝  %s\n", yellow, reset)
+	fmt.Printf("%s  ██║     ╚██████╔╝██║  ██║╚██████╔╝███████╗%s\n", yellow, reset)
+	fmt.Printf("%s  ╚═╝      ╚═════╝ ╚═╝  ╚═╝ ╚═════╝ ╚══════╝%s\n", yellow, reset)
+	fmt.Println()
+	fmt.Printf("%s  ─────────────────────────────────────────────%s\n", cyan, reset)
+	fmt.Printf("  %s%-24s%s %s✓%s ENGINE ONLINE    %s→%s http://localhost:%s\n",
+		yellow, version, reset,
+		green, reset,
+		cyan, reset, port,
+	)
+	fmt.Printf("%s  ─────────────────────────────────────────────%s\n", cyan, reset)
+	fmt.Printf("  %sPress Ctrl+C to stop%s\n", dim, reset)
+	fmt.Println()
+}
+
+// airBannerFilter wraps a writer and drops air's ASCII art banner lines.
+type airBannerFilter struct {
+	w io.Writer
+}
+
+func (f *airBannerFilter) Write(p []byte) (n int, err error) {
+	lines := strings.Split(string(p), "\n")
+	var kept []string
+	for _, line := range lines {
+		if !isAirBannerLine(line) {
+			kept = append(kept, line)
+		}
+	}
+	out := strings.Join(kept, "\n")
+	if strings.TrimSpace(out) == "" {
+		return len(p), nil
+	}
+	_, err = fmt.Fprint(f.w, out)
+	return len(p), err
+}
+
+func isAirBannerLine(line string) bool {
+	bannerFragments := []string{
+		"/ /\\", "/_/--\\", "| |_) ", "| |_| \\_",
+		"__    _   ___",
+	}
+	for _, fragment := range bannerFragments {
+		if strings.Contains(line, fragment) {
+			return true
+		}
+	}
+	return false
 }
 
 // warnMissingTools checks for templ and air and suggests forge setup if missing.
@@ -82,8 +139,8 @@ func warnMissingTools() {
 		missing = append(missing, "air")
 	}
 	if len(missing) > 0 {
-		fmt.Printf("=> warning: missing tools: %s\n", strings.Join(missing, ", "))
-		fmt.Println("   run `forge setup` to install them")
+		fmt.Printf("\033[93m=> warning:\033[0m missing tools: %s\n", strings.Join(missing, ", "))
+		fmt.Println("   run \033[96mforge setup\033[0m to install them")
 		fmt.Println()
 	}
 }
