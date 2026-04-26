@@ -40,7 +40,9 @@ Routes use Rails-style `"controller#action"` strings:
 ```go
 app.GET("/users", "users#index")
 app.GET("/users/:id", "users#show")
-app.Resources("users")  // generates all 5 REST routes
+app.Resources("users")               // generates 7 REST routes (index, new, create, show, edit, update, destroy)
+app.Member("users", "POST", "ban")   // POST /users/:id/ban → users#ban
+app.Collection("users", "GET", "active") // GET /users/active → users#active
 ```
 Controllers are registered by name and actions are resolved via reflection. Controller must be registered before routes are served (not at definition time).
 
@@ -94,6 +96,8 @@ app := forge.New()
 app.Register("users", &UsersController{})
 app.GET("/users", "users#index")
 app.Resources("users")
+app.Member("users", "POST", "ban")        // POST /users/:id/ban → users#ban
+app.Collection("users", "GET", "active")  // GET /users/active → users#active
 app.Use(myMiddleware)
 app.Start(":8080")
 ```
@@ -186,7 +190,9 @@ Field types: `string/str/text`, `int/integer`, `int64`, `float/float64/decimal`,
 ## What's built ✓
 - [x] CLI: `forge new`, `forge server`, `forge routes`, `forge routes --json`, `forge version`, `forge setup`
 - [x] Router: method routing, URL params (`:id`), `"controller#action"` convention
-- [x] `app.Resources()` — generates 5 REST routes
+- [x] `app.Resources()` — generates 7 REST routes (adds `new` and `edit`)
+- [x] `app.Member()` / `app.Collection()` — custom routes on resource instances / collections
+- [x] `middleware.MethodOverride()` — PUT/DELETE from HTML forms via `_method` field
 - [x] Context: full response API, `Values map[string]any` for middleware→handler data
 - [x] JSON envelope: `{"data": ...}` / `{"error": {...}}`
 - [x] Content negotiation: `ctx.WantsJSON()` + `ctx.Respond()`
