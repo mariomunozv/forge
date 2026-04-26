@@ -375,9 +375,11 @@ forge g job SendEmail # background job
 ## Routing — config/app.go
 ` + "```" + `go
 app.Register("posts", &controllers.PostsController{})
-app.Resources("posts")        // 7 routes: index, new, create, show, edit, update, destroy
+app.Resources("posts")           // 7 routes: index, new, create, show, edit, update, destroy
+app.Member("posts", "POST", "publish")    // POST /posts/:id/publish → posts#publish
+app.Collection("posts", "GET", "drafts") // GET /posts/drafts → posts#drafts
 app.GET("/about", "home#about")
-app.Use(middleware.Auth())        // global middleware
+app.Use(middleware.Auth())           // global middleware
 app.Use(middleware.MethodOverride()) // PUT/DELETE from HTML forms via _method field
 ` + "```" + `
 

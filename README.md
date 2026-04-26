@@ -65,8 +65,14 @@ app.GET("/posts",     "posts#index")
 app.GET("/posts/:id", "posts#show")
 app.POST("/posts",    "posts#create")
 
-// or all 5 REST routes at once
+// or all 7 REST routes at once (index, new, create, show, edit, update, destroy)
 app.Resources("posts")
+
+// custom routes on a single resource instance
+app.Member("posts", "POST", "publish")     // POST /posts/:id/publish → posts#publish
+
+// custom routes on the collection
+app.Collection("posts", "GET", "drafts")   // GET /posts/drafts → posts#drafts
 ```
 
 Routes use `"controller#action"` strings. The controller is resolved by name from the registry, the action by reflection. No magic, no decorators.
