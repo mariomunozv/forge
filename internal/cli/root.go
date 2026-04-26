@@ -24,7 +24,7 @@ Go web framework with Rails vibes.
 `,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		loadDotEnv(".env")
-		warnOutdatedForgeMd()
+		syncForgeMdIfNeeded()
 	},
 }
 
@@ -59,29 +59,26 @@ func loadDotEnv(path string) {
 	}
 }
 
-// warnOutdatedForgeMd checks if FORGE.md exists and its embedded version
-// matches the running CLI. Prints a warning if they differ.
-func warnOutdatedForgeMd() {
+// syncForgeMdIfNeeded regenerates FORGE.md if it is missing or was generated
+// by a different CLI version. Runs silently on every forge command.
+func syncForgeMdIfNeeded() {
+	current := strings.TrimPrefix(forgeVersion(), "forge ")
+
 	data, err := os.ReadFile("FORGE.md")
-	if err != nil {
-		return
+	if err == nil {
+		firstLine := strings.SplitN(string(data), "\n", 2)[0]
+		inner := strings.TrimPrefix(firstLine, "<!-- forge:")
+		fileVersion := strings.SplitN(inner, " ", 2)[0]
+		if fileVersion == current {
+			return // already up to date
+		}
+	} else if !os.IsNotExist(err) {
+		return // unreadable for another reason, skip silently
 	}
-	firstLine := strings.SplitN(string(data), "\n", 2)[0]
-	if !strings.HasPrefix(firstLine, "<!-- forge:") {
-		return
-	}
-	// extract version between "<!-- forge:" and " —"
-	inner := strings.TrimPrefix(firstLine, "<!-- forge:")
-	fileVersion := strings.SplitN(inner, " ", 2)[0]
 
-	current := forgeVersion() // e.g. "forge v0.0.0-abc1234"
-	currentVersion := strings.TrimPrefix(current, "forge ")
-
-	if fileVersion != currentVersion {
-		fmt.Printf("\033[93m=> warning:\033[0m FORGE.md was generated with %s, CLI is now %s\n", fileVersion, currentVersion)
-		fmt.Println("   run \033[96mforge sync\033[0m to update it")
-		fmt.Println()
-	}
+	tmplData := struct{ Version string }{Version: current}
+	f := scaffoldFile{path: "FORGE.md", tmpl: forgeMdTmpl}
+	writeTemplate(".", f, tmplData) //nolint:errcheck — best-effort, not in a forge app dir
 }
 
 func Execute() {

@@ -308,6 +308,7 @@ SESSION_SECRET=change-me-in-production
 
 var gitignoreTmpl = `.env
 tmp/
+FORGE.md
 `
 
 var initialMigrationTmpl = `-- migrate:up
@@ -491,6 +492,5 @@ forge routes          # list all registered routes
 forge db migrate      # run pending migrations
 forge db rollback     # roll back last migration
 forge db status       # show migration state
-forge sync            # update FORGE.md to match the installed CLI version
 ` + "```" + `
 `
