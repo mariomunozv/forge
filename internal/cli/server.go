@@ -41,7 +41,6 @@ func runServer(cmd *cobra.Command, args []string) error {
 	templ := exec.Command("templ", "generate", "--watch")
 	templ.Stdout = os.Stdout
 	templ.Stderr = os.Stderr
-	templ.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	if err := templ.Start(); err != nil {
 		fmt.Println("=> templ watcher skipped (not installed)")
 	}
@@ -56,7 +55,6 @@ func runServer(cmd *cobra.Command, args []string) error {
 	server.Env = append(os.Environ(), fmt.Sprintf("PORT=%s", serverPort))
 	server.Stdout = &airBannerFilter{w: os.Stdout}
 	server.Stderr = &airBannerFilter{w: os.Stderr}
-	server.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	if err := server.Start(); err != nil {
 		return fmt.Errorf("could not start server: %w", err)
 	}
@@ -65,9 +63,10 @@ func runServer(cmd *cobra.Command, args []string) error {
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 	<-quit
 
+	// Ctrl+C (SIGINT) is sent by the terminal to the entire foreground
+	// process group, so air and tmp/main already received it. We just
+	// need to print the message and exit.
 	fmt.Println("\n\033[90m=> shutting down...\033[0m")
-	killGroup(templ)
-	killGroup(server)
 	return nil
 }
 
@@ -133,15 +132,6 @@ func isAirBannerLine(line string) bool {
 		}
 	}
 	return false
-}
-
-// killGroup kills the entire process group of cmd, ensuring child processes
-// spawned by air or templ (e.g. the compiled binary) are also terminated.
-func killGroup(cmd *exec.Cmd) {
-	if cmd.Process == nil {
-		return
-	}
-	syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
 }
 
 // warnMissingTools checks for templ and air and suggests forge setup if missing.
