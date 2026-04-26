@@ -81,6 +81,22 @@ func (a *App) Resources(name string) {
 	a.DELETE("/"+name+"/:id", name+"#destroy")
 }
 
+// Member registers a custom route scoped to a single resource instance.
+// It maps METHOD /resource/:id/action → resource#action.
+//
+//	app.Member("connections", "POST", "test")  // POST /connections/:id/test → connections#test
+func (a *App) Member(resource, method, action string) {
+	a.router.add(method, "/"+resource+"/:id/"+action, resource+"#"+action)
+}
+
+// Collection registers a custom route scoped to the resource collection.
+// It maps METHOD /resource/action → resource#action.
+//
+//	app.Collection("connections", "GET", "active")  // GET /connections/active → connections#active
+func (a *App) Collection(resource, method, action string) {
+	a.router.add(method, "/"+resource+"/"+action, resource+"#"+action)
+}
+
 // Start runs the HTTP server on the given address.
 // If the FORGE_CMD environment variable is set, it runs that command and exits
 // instead of starting the server. This is how `forge routes` works.
