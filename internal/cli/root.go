@@ -78,7 +78,9 @@ func syncForgeMdIfNeeded() {
 
 	tmplData := struct{ Version string }{Version: current}
 	f := scaffoldFile{path: "FORGE.md", tmpl: forgeMdTmpl}
-	writeTemplate(".", f, tmplData) //nolint:errcheck — best-effort, not in a forge app dir
+	if err := writeTemplate(".", f, tmplData); err == nil {
+		fmt.Printf("\033[90m=> FORGE.md updated to %s\033[0m\n\n", current)
+	}
 }
 
 func Execute() {
