@@ -52,6 +52,7 @@ func runNew(cmd *cobra.Command, args []string) error {
 	version := time.Now().UTC().Format("20060102150405")
 	files := []scaffoldFile{
 		{path: "CLAUDE.md", tmpl: claudeMdTmpl},
+		{path: "FORGE.md", tmpl: forgeMdTmpl},
 		{path: "go.mod", tmpl: goModTmpl},
 		{path: "main.go", tmpl: mainGoTmpl},
 		{path: ".air.toml", tmpl: airTomlTmpl},
@@ -66,7 +67,10 @@ func runNew(cmd *cobra.Command, args []string) error {
 		{path: fmt.Sprintf("db/migrations/%s_initial.sql", version), tmpl: initialMigrationTmpl},
 	}
 
-	data := struct{ AppName string }{AppName: appName}
+	data := struct {
+		AppName string
+		Version string
+	}{AppName: appName, Version: forgeVersion()}
 
 	for _, f := range files {
 		if err := writeTemplate(appName, f, data); err != nil {
@@ -335,13 +339,7 @@ tmp_dir = "tmp"
 
 var claudeMdTmpl = `# {{.AppName}}
 
-A [Forge](https://github.com/mariomunozv/forge) web app — Go framework with Rails-like conventions.
-
-## Stack
-- **Go** + **Forge** framework
-- **templ** — type-safe HTML components (compile-time errors, not runtime)
-- **PostgreSQL** via ` + "`lib/pq`" + `
-- **air** — hot reload (` + "`forge server`" + ` starts it automatically)
+@FORGE.md
 
 ## Project structure
 ` + "```" + `
@@ -352,86 +350,14 @@ app/
     layouts/     # application.templ — shared HTML shell
     <resource>/  # index.templ, show.templ, new.templ, edit.templ
 config/
-  app.go         # route registration (add routes here)
+  app.go         # route registration — add routes here
   database.go    # DB connection
 db/
-  migrations/    # .sql files, run with: forge db migrate
+  migrations/    # .sql files — run with: forge db migrate
 main.go
 ` + "```" + `
 
-## Generators (fastest way to add features)
-` + "```" + `bash
-forge g resource Post title:string body:string published:bool
-# → model, controller, all views (index/show/new/edit), migration
-
-forge g controller Comments index show
-forge g model Comment post_id:int body:string
-forge g view comments index show
-forge g migration add_published_to_posts
-forge g auth          # users table + bcrypt model + sessions controller + login view
-forge g job SendEmail # background job
-` + "```" + `
-
-## Routing — config/app.go
-` + "```" + `go
-app.Register("posts", &controllers.PostsController{})
-app.Resources("posts")           // 7 routes: index, new, create, show, edit, update, destroy
-app.Member("posts", "POST", "publish")    // POST /posts/:id/publish → posts#publish
-app.Collection("posts", "GET", "drafts") // GET /posts/drafts → posts#drafts
-app.GET("/about", "home#about")
-app.Use(middleware.Auth())           // global middleware
-app.Use(middleware.MethodOverride()) // PUT/DELETE from HTML forms via _method field
-` + "```" + `
-
-## Controllers
-` + "```" + `go
-type PostsController struct{}
-
-func (c *PostsController) Index(ctx *forge.Context) error {
-    posts, err := models.AllPosts(config.DB)
-    if err != nil {
-        return ctx.Error(500, "could not load posts")
-    }
-    return ctx.Respond(posts, views.PostsIndex(posts)) // JSON or HTML
-}
-
-func (c *PostsController) Show(ctx *forge.Context) error {
-    id := ctx.Param("id")
-    // ...
-    return ctx.Component(views.PostsShow(post))        // HTML only
-}
-
-func (c *PostsController) Create(ctx *forge.Context) error {
-    var input struct { Title string ` + "`json:\"title\"`" + ` }
-    if err := ctx.Bind(&input); err != nil {
-        return ctx.Error(400, "invalid input")
-    }
-    // ...
-    return ctx.Created(post)                           // JSON 201
-}
-` + "```" + `
-
-## Context API
-` + "```" + `go
-ctx.Param("id")              // URL param
-ctx.Query("page")            // query string
-ctx.Bind(&input)             // decode JSON body into struct
-ctx.WantsJSON()              // true if client wants JSON
-
-ctx.Respond(data, component) // auto: JSON for API, HTML for browser
-ctx.Component(component)     // render a templ component
-ctx.Success(v)               // 200 {"data": v}
-ctx.Created(v)               // 201 {"data": v}
-ctx.Error(status, "msg")     // {"error": {"message": ...}}
-ctx.Redirect(302, "/path")
-
-ctx.SignIn(userID)           // set session cookie
-ctx.SignOut()                // clear session
-ctx.CurrentUserID()          // (int64, bool)
-ctx.Values["current_user_id"] // set by middleware.Auth()
-` + "```" + `
-
-## Views (templ)
+## Views (templ) — module path for this app
 ` + "```" + `go
 // app/views/posts/index.templ
 package posts
@@ -448,8 +374,85 @@ templ Index(data IndexData) {
     }
 }
 ` + "```" + `
+`
 
-After editing a ` + "`.templ`" + ` file, ` + "`templ generate`" + ` runs automatically via ` + "`forge server`" + `.
+var forgeMdTmpl = `<!-- forge:{{.Version}} — run ` + "`forge sync`" + ` to update -->
+
+# Forge conventions
+
+## Stack
+- **Go** + **Forge** framework — Rails-like conventions, no magic
+- **templ** — type-safe HTML components (compile-time errors, not runtime)
+- **PostgreSQL** via ` + "`lib/pq`" + `
+- **air** — hot reload (` + "`forge server`" + ` starts it automatically)
+
+## Generators
+` + "```" + `bash
+forge g resource Post title:string body:string published:bool
+# → model, controller, all views (index/show/new/edit), migration
+
+forge g controller Comments index show
+forge g model Comment post_id:int body:string
+forge g view comments index show
+forge g migration add_published_to_posts
+forge g auth          # users table + bcrypt model + sessions controller + login view
+forge g job SendEmail # background job
+` + "```" + `
+
+Field types: ` + "`string`" + `, ` + "`int`" + `, ` + "`int64`" + `, ` + "`float64`" + `, ` + "`bool`" + `, ` + "`time`" + `
+
+## Routing — config/app.go
+` + "```" + `go
+app.Register("posts", &controllers.PostsController{})
+app.Resources("posts")                           // 7 routes: index, new, create, show, edit, update, destroy
+app.Member("posts", "POST", "publish")           // POST /posts/:id/publish → posts#publish
+app.Collection("posts", "GET", "drafts")         // GET /posts/drafts → posts#drafts
+app.GET("/about", "home#about")
+app.Use(middleware.Auth())                        // sets ctx.Values["current_user_id"] if session valid
+app.Use(middleware.RequireAuth())                 // 401 if no valid session
+app.Use(middleware.MethodOverride())              // PUT/DELETE from HTML forms via _method field
+` + "```" + `
+
+## Controllers
+` + "```" + `go
+type PostsController struct{}
+
+func (c *PostsController) Index(ctx *forge.Context) error {
+    posts, err := models.AllPosts(config.DB)
+    if err != nil {
+        return ctx.Error(500, "could not load posts")
+    }
+    return ctx.Respond(posts, views.PostsIndex(posts)) // JSON or HTML based on Accept header
+}
+
+func (c *PostsController) Create(ctx *forge.Context) error {
+    var input struct { Title string ` + "`json:\"title\"`" + ` }
+    if err := ctx.Bind(&input); err != nil {
+        return ctx.Error(400, "invalid input")
+    }
+    return ctx.Created(post) // 201 {"data": post}
+}
+` + "```" + `
+
+## Context API
+` + "```" + `go
+ctx.Param("id")               // URL param
+ctx.Query("page")             // query string
+ctx.Bind(&input)              // decode JSON or form body into struct
+ctx.WantsJSON()               // true if client wants JSON
+
+ctx.Respond(data, component)  // auto: JSON for API clients, HTML for browser
+ctx.Component(component)      // render a templ component (HTML only)
+ctx.Success(v)                // 200 {"data": v}
+ctx.Created(v)                // 201 {"data": v}
+ctx.Error(status, "msg")      // {"error": {"message": ..., "code": status}}
+ctx.Redirect(302, "/path")
+
+ctx.SignIn(userID)            // write signed session cookie
+ctx.SignOut()                 // clear session cookie
+ctx.CurrentUserID()           // (int64, bool) — read & verify session
+ctx.Values["current_user_id"] // set by middleware.Auth()
+` + "```" + `
 
 ## Database
 ` + "```" + `go
@@ -459,14 +462,12 @@ After editing a ` + "`.templ`" + ` file, ` + "`templ generate`" + ` runs automat
 // -- migrate:down
 // DROP TABLE posts;
 
-// Queries
-post, err := db.QueryOne[Post](config.DB, "SELECT * FROM posts WHERE id=$1", id)
+post, err  := db.QueryOne[Post](config.DB, "SELECT * FROM posts WHERE id=$1", id)
 posts, err := db.QueryAll[Post](config.DB, "SELECT * FROM posts ORDER BY created_at DESC")
 
-// CRUD helpers
 id, err := db.Insert(config.DB, "posts", map[string]any{"title": "Hello"})
-err     := db.Update(config.DB, "posts", id, map[string]any{"title": "Updated"})
-err     := db.Delete(config.DB, "posts", id)
+err     = db.Update(config.DB, "posts", id, map[string]any{"title": "Updated"})
+err     = db.Delete(config.DB, "posts", id)
 ` + "```" + `
 
 Struct tags for scanning:
@@ -480,22 +481,16 @@ type Post struct {
 
 ## Auth / sessions
 ` + "```" + `bash
-forge g auth   # generates everything
-` + "```" + `
-` + "```" + `go
-// Protect a route
-app.Use(middleware.RequireAuth())
-
-// In a controller
-userID, ok := ctx.CurrentUserID()
+forge g auth   # generates users migration, User model (bcrypt), sessions controller, login view
 ` + "```" + `
 
 ## Development commands
 ` + "```" + `bash
 forge server          # start dev server with hot reload
+forge routes          # list all registered routes
 forge db migrate      # run pending migrations
 forge db rollback     # roll back last migration
 forge db status       # show migration state
-forge routes          # list all routes
+forge sync            # update FORGE.md to match the installed CLI version
 ` + "```" + `
 `

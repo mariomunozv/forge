@@ -24,6 +24,7 @@ Go web framework with Rails vibes.
 `,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		loadDotEnv(".env")
+		warnOutdatedForgeMd()
 	},
 }
 
@@ -55,6 +56,31 @@ func loadDotEnv(path string) {
 		if key != "" && os.Getenv(key) == "" {
 			os.Setenv(key, val)
 		}
+	}
+}
+
+// warnOutdatedForgeMd checks if FORGE.md exists and its embedded version
+// matches the running CLI. Prints a warning if they differ.
+func warnOutdatedForgeMd() {
+	data, err := os.ReadFile("FORGE.md")
+	if err != nil {
+		return
+	}
+	firstLine := strings.SplitN(string(data), "\n", 2)[0]
+	if !strings.HasPrefix(firstLine, "<!-- forge:") {
+		return
+	}
+	// extract version between "<!-- forge:" and " —"
+	inner := strings.TrimPrefix(firstLine, "<!-- forge:")
+	fileVersion := strings.SplitN(inner, " ", 2)[0]
+
+	current := forgeVersion() // e.g. "forge v0.0.0-abc1234"
+	currentVersion := strings.TrimPrefix(current, "forge ")
+
+	if fileVersion != currentVersion {
+		fmt.Printf("\033[93m=> warning:\033[0m FORGE.md was generated with %s, CLI is now %s\n", fileVersion, currentVersion)
+		fmt.Println("   run \033[96mforge sync\033[0m to update it")
+		fmt.Println()
 	}
 }
 
