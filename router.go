@@ -88,8 +88,7 @@ func (r *Router) serve(w http.ResponseWriter, req *http.Request, middleware []Mi
 			}
 		}
 
-		http.NotFound(ctx.Response, ctx.Request)
-		return nil
+		return serveNotFound(ctx)
 	}
 
 	final := applyMiddleware(routeMatcher, middleware)

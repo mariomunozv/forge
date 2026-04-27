@@ -2,6 +2,7 @@ package forge
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -53,6 +54,42 @@ func (c *Context) WantsJSON() bool {
 	}
 	return false
 }
+
+// serveNotFound writes a styled 404 response — JSON for API clients, HTML for browsers.
+func serveNotFound(ctx *Context) error {
+	if ctx.WantsJSON() {
+		return ctx.Error(http.StatusNotFound, "not found")
+	}
+	ctx.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
+	ctx.Response.WriteHeader(http.StatusNotFound)
+	fmt.Fprint(ctx.Response, notFoundHTML)
+	return nil
+}
+
+const notFoundHTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>404 — Not Found</title>
+</head>
+<body style="box-sizing:border-box;margin:0;padding:0;background:#0f0f0f;color:#F0F0F0;font-family:ui-monospace,'SF Mono',Menlo,monospace;min-height:100vh;display:flex;align-items:center;justify-content:center">
+  <div style="max-width:560px;width:100%;padding:32px">
+    <div style="color:#E8FF00;font-size:11px;letter-spacing:4px;margin-bottom:24px;opacity:.7">// 404</div>
+    <pre style="color:#E8FF00;font-size:11px;line-height:1.3;margin-bottom:32px;text-shadow:0 0 20px rgba(232,255,0,.3)">  ██╗  ██╗ ██████╗ ██╗  ██╗
+  ██║  ██║██╔═══██╗██║  ██║
+  ███████║██║   ██║███████║
+  ╚════██║██║   ██║╚════██║
+       ██║╚██████╔╝     ██║
+       ╚═╝ ╚═════╝      ╚═╝</pre>
+    <div style="border-top:1px solid #252525;padding-top:24px;margin-bottom:24px">
+      <div style="font-size:20px;font-weight:700;color:#F0F0F0;margin-bottom:8px">Not Found<span style="color:#E8FF00">_</span></div>
+      <div style="color:#888;font-size:13px;line-height:1.6">The page you&#39;re looking for doesn&#39;t exist.</div>
+    </div>
+    <div style="font-size:12px;color:#555">← go back</div>
+  </div>
+</body>
+</html>`
 
 // Component renders a templ component as an HTML response.
 //
