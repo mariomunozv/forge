@@ -86,7 +86,7 @@ const notFoundHTML = `<!DOCTYPE html>
       <div style="font-size:20px;font-weight:700;color:#F0F0F0;margin-bottom:8px">Not Found<span style="color:#E8FF00">_</span></div>
       <div style="color:#888;font-size:13px;line-height:1.6">The page you&#39;re looking for doesn&#39;t exist.</div>
     </div>
-    <div style="font-size:12px;color:#555">← go back</div>
+    <a href="/" onclick="event.preventDefault();history.length>1?history.back():window.location.href='/'" style="font-size:12px;color:#555;text-decoration:none;cursor:pointer">← go back</a>
   </div>
 </body>
 </html>`
