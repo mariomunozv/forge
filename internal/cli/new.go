@@ -232,6 +232,7 @@ templ Application(title string) {
 			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 			<title>{ title }</title>
+			<script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js"></script>
 		</head>
 		<body style="box-sizing:border-box;margin:0;padding:0;background:#0f0f0f;color:#F0F0F0;font-family:ui-monospace,'SF Mono',Menlo,monospace;min-height:100vh">
 			{ children... }
@@ -440,6 +441,24 @@ type Post struct {
 ## Auth / sessions
 ` + "```" + `bash
 forge g auth   # generates users migration, User model (bcrypt), sessions controller, login view
+` + "```" + `
+
+## htmx — dynamic interactions
+htmx is included in the default layout. Use HTML attributes for partial updates without writing JS:
+` + "```" + `html
+<form hx-post="/posts" hx-target="#results" hx-swap="innerHTML">...</form>
+<div id="results"><!-- replaced by htmx response --></div>
+` + "```" + `
+
+In controllers, return a partial component for htmx requests:
+` + "```" + `go
+func (c *PostsController) Search(ctx *forge.Context) error {
+    results, _ := models.SearchPosts(config.DB, ctx.Query("q"))
+    if ctx.IsHTMX() {
+        return ctx.Component(views.PostsResults(results))
+    }
+    return ctx.Component(views.PostsIndex(results))
+}
 ` + "```" + `
 
 ## 404 handling

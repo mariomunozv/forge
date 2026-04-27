@@ -40,6 +40,12 @@ func (c *Context) Query(key string) string {
 	return c.Request.URL.Query().Get(key)
 }
 
+// IsHTMX returns true when the request was made by htmx (hx-post, hx-get, etc.).
+// Use this to return a partial component instead of a full page layout.
+func (c *Context) IsHTMX() bool {
+	return c.Request.Header.Get("HX-Request") == "true"
+}
+
 // WantsJSON returns true when the client expects a JSON response.
 // Checks (in order): Accept header, Content-Type header, ?format=json query param.
 func (c *Context) WantsJSON() bool {
