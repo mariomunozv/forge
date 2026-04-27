@@ -100,7 +100,7 @@ func syncContextFileIfNeeded() {
 	}
 
 	if err := os.WriteFile(path, []byte(newContent), 0644); err == nil {
-		fmt.Printf("\033[90m=> context file updated to %s\033[0m\n\n", current)
+		fmt.Printf("\033[90m=> %s updated to %s\033[0m\n\n", path, current)
 	}
 }
 

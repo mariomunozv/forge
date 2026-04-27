@@ -442,6 +442,11 @@ type Post struct {
 forge g auth   # generates users migration, User model (bcrypt), sessions controller, login view
 ` + "```" + `
 
+## 404 handling
+Unmatched routes return a styled response automatically — no controller code needed:
+- **JSON clients**: ` + "`" + `{"error": {"message": "not found", "code": 404}}` + "`" + `
+- **Browser**: dark-themed HTML page matching the design system (black background, yellow accent)
+
 ## Development commands
 ` + "```" + `bash
 forge server          # start dev server with hot reload
