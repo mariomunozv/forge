@@ -60,35 +60,42 @@ func (r *Router) add(method, path, handler string) {
 }
 
 func (r *Router) serve(w http.ResponseWriter, req *http.Request, middleware []MiddlewareFunc) {
-	params := make(map[string]string)
-	reqParts := splitPath(req.URL.Path)
+	ctx := newContext(w, req, nil)
 
-	for _, route := range r.routes {
-		if route.method != req.Method {
-			continue
-		}
-		if match(route.parts, reqParts, params) {
-			handler, err := r.resolve(route.handler)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
+	// Route matching is the innermost handler so middleware runs first,
+	// allowing any middleware (e.g. MethodOverride) to mutate ctx.Request
+	// before the method and path are compared against registered routes.
+	routeMatcher := func(ctx *Context) error {
+		params := make(map[string]string)
+		reqParts := splitPath(ctx.Request.URL.Path)
+
+		for _, route := range r.routes {
+			if route.method != ctx.Request.Method {
+				continue
 			}
-
-			ctx := newContext(w, req, params)
-			final := applyMiddleware(handler, middleware)
-
-			if err := final(ctx); err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+			if match(route.parts, reqParts, params) {
+				for k, v := range params {
+					ctx.Params[k] = v
+				}
+				handler, err := r.resolve(route.handler)
+				if err != nil {
+					return err
+				}
+				return handler(ctx)
 			}
-			return
+			for k := range params {
+				delete(params, k)
+			}
 		}
-		// clear params for next iteration
-		for k := range params {
-			delete(params, k)
-		}
+
+		http.NotFound(ctx.Response, ctx.Request)
+		return nil
 	}
 
-	http.NotFound(w, req)
+	final := applyMiddleware(routeMatcher, middleware)
+	if err := final(ctx); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 // resolve turns "home#index" into a HandlerFunc by looking up the controller
