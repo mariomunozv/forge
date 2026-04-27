@@ -91,7 +91,9 @@ func TestCreated_Envelope(t *testing.T) {
 }
 
 func TestError_Envelope(t *testing.T) {
-	ctx, w := newTestContext("GET", "/", nil)
+	ctx, w := newTestContext("GET", "/", map[string]string{
+		"Accept": "application/json",
+	})
 	ctx.Error(http.StatusNotFound, "user not found")
 
 	if w.Code != http.StatusNotFound {
@@ -103,6 +105,24 @@ func TestError_Envelope(t *testing.T) {
 	}
 	if !strings.Contains(body, `"user not found"`) {
 		t.Fatalf("expected message in body, got: %s", body)
+	}
+}
+
+func TestError_HTML(t *testing.T) {
+	ctx, w := newTestContext("GET", "/", map[string]string{
+		"Accept": "text/html",
+	})
+	ctx.Error(http.StatusNotFound, "user not found")
+
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d", w.Code)
+	}
+	body := w.Body.String()
+	if !strings.Contains(body, "Not Found") {
+		t.Fatalf("expected HTML error page, got: %s", body)
+	}
+	if !strings.Contains(body, "user not found") {
+		t.Fatalf("expected message in HTML body, got: %s", body)
 	}
 }
 

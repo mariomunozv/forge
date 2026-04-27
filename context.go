@@ -61,78 +61,16 @@ func (c *Context) WantsJSON() bool {
 	return false
 }
 
-// serveInternalError writes a styled 500 response — JSON for API clients, HTML for browsers.
-// Never exposes error details; use middleware.DevErrors() in development for that.
+// serveInternalError writes a styled 500 response without exposing error details.
+// Use middleware.DevErrors() in development for detailed error pages.
 func serveInternalError(ctx *Context) error {
-	if ctx.WantsJSON() {
-		return ctx.Error(http.StatusInternalServerError, "internal server error")
-	}
-	ctx.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
-	ctx.Response.WriteHeader(http.StatusInternalServerError)
-	fmt.Fprint(ctx.Response, internalErrorHTML)
-	return nil
+	return ctx.Error(http.StatusInternalServerError, "Something went wrong on our end.")
 }
 
-// serveNotFound writes a styled 404 response — JSON for API clients, HTML for browsers.
+// serveNotFound writes a styled 404 response.
 func serveNotFound(ctx *Context) error {
-	if ctx.WantsJSON() {
-		return ctx.Error(http.StatusNotFound, "not found")
-	}
-	ctx.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
-	ctx.Response.WriteHeader(http.StatusNotFound)
-	fmt.Fprint(ctx.Response, notFoundHTML)
-	return nil
+	return ctx.Error(http.StatusNotFound, "The page you're looking for doesn't exist.")
 }
-
-const internalErrorHTML = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>500 — Internal Server Error</title>
-</head>
-<body style="box-sizing:border-box;margin:0;padding:0;background:#0f0f0f;color:#F0F0F0;font-family:ui-monospace,'SF Mono',Menlo,monospace;min-height:100vh;display:flex;align-items:center;justify-content:center">
-  <div style="max-width:560px;width:100%;padding:32px">
-    <div style="color:#E8FF00;font-size:11px;letter-spacing:4px;margin-bottom:24px;opacity:.7">// 500</div>
-    <pre style="color:#E8FF00;font-size:11px;line-height:1.3;margin-bottom:32px;text-shadow:0 0 20px rgba(232,255,0,.3)"> ██████╗
-██╔════╝
-███████╗██████╗  ██████╗
-╚════██║╚════██╗██╔═████╗
- ██████║ ██████╔╝╚██████╔╝
- ╚═════╝ ╚═════╝  ╚═════╝</pre>
-    <div style="border-top:1px solid #252525;padding-top:24px;margin-bottom:24px">
-      <div style="font-size:20px;font-weight:700;color:#F0F0F0;margin-bottom:8px">Internal Server Error<span style="color:#E8FF00">_</span></div>
-      <div style="color:#888;font-size:13px;line-height:1.6">Something went wrong on our end.</div>
-    </div>
-    <a href="/" onclick="event.preventDefault();history.length>1?history.back():window.location.href='/'" style="font-size:12px;color:#555;text-decoration:none;cursor:pointer">← go back</a>
-  </div>
-</body>
-</html>`
-
-const notFoundHTML = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>404 — Not Found</title>
-</head>
-<body style="box-sizing:border-box;margin:0;padding:0;background:#0f0f0f;color:#F0F0F0;font-family:ui-monospace,'SF Mono',Menlo,monospace;min-height:100vh;display:flex;align-items:center;justify-content:center">
-  <div style="max-width:560px;width:100%;padding:32px">
-    <div style="color:#E8FF00;font-size:11px;letter-spacing:4px;margin-bottom:24px;opacity:.7">// 404</div>
-    <pre style="color:#E8FF00;font-size:11px;line-height:1.3;margin-bottom:32px;text-shadow:0 0 20px rgba(232,255,0,.3)">  ██╗  ██╗ ██████╗ ██╗  ██╗
-  ██║  ██║██╔═══██╗██║  ██║
-  ███████║██║   ██║███████║
-  ╚════██║██║   ██║╚════██║
-       ██║╚██████╔╝     ██║
-       ╚═╝ ╚═════╝      ╚═╝</pre>
-    <div style="border-top:1px solid #252525;padding-top:24px;margin-bottom:24px">
-      <div style="font-size:20px;font-weight:700;color:#F0F0F0;margin-bottom:8px">Not Found<span style="color:#E8FF00">_</span></div>
-      <div style="color:#888;font-size:13px;line-height:1.6">The page you&#39;re looking for doesn&#39;t exist.</div>
-    </div>
-    <a href="/" onclick="event.preventDefault();history.length>1?history.back():window.location.href='/'" style="font-size:12px;color:#555;text-decoration:none;cursor:pointer">← go back</a>
-  </div>
-</body>
-</html>`
 
 // Component renders a templ component as an HTML response.
 //
@@ -175,13 +113,29 @@ func (c *Context) Created(v any) error {
 	return c.jsonData(http.StatusCreated, v)
 }
 
-// Error writes a JSON error envelope: {"error": {"message": ..., "code": ...}}.
+// Error writes an error response, content-negotiating between JSON and HTML.
+// JSON clients receive {"error": {"message": ..., "code": ...}}.
+// Browser clients receive a styled HTML error page.
 //
 //	return ctx.Error(http.StatusNotFound, "user not found")
 func (c *Context) Error(status int, message string) error {
-	return c.JSON(status, envelope{
-		Error: &apiError{Message: message, Code: status},
-	})
+	if c.WantsJSON() {
+		return c.JSON(status, envelope{
+			Error: &apiError{Message: message, Code: status},
+		})
+	}
+	return c.ErrorPage(status, message)
+}
+
+// ErrorPage renders a styled HTML error page matching the Forge design system.
+// Use this when you want to force an HTML error page regardless of content negotiation.
+//
+//	return ctx.ErrorPage(http.StatusForbidden, "you don't have access to this resource")
+func (c *Context) ErrorPage(status int, message string) error {
+	c.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
+	c.Response.WriteHeader(status)
+	fmt.Fprint(c.Response, buildErrorHTML(status, message))
+	return nil
 }
 
 // Text writes a plain text response.
@@ -237,4 +191,52 @@ type apiError struct {
 
 func (c *Context) jsonData(status int, v any) error {
 	return c.JSON(status, envelope{Data: v})
+}
+
+// --- Error page HTML ---
+
+const goBackLink = `<a href="/" onclick="event.preventDefault();history.length>1?history.back():window.location.href='/'" style="font-size:12px;color:#555;text-decoration:none;cursor:pointer">← go back</a>`
+
+const errorPageShell = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>%d — %s</title>
+</head>
+<body style="box-sizing:border-box;margin:0;padding:0;background:#0f0f0f;color:#F0F0F0;font-family:ui-monospace,'SF Mono',Menlo,monospace;min-height:100vh;display:flex;align-items:center;justify-content:center">
+  <div style="max-width:560px;width:100%%;padding:32px">
+    <div style="color:#E8FF00;font-size:11px;letter-spacing:4px;margin-bottom:24px;opacity:.7">// %d</div>
+    %s
+    <div style="border-top:1px solid #252525;padding-top:24px;margin-bottom:24px">
+      <div style="font-size:20px;font-weight:700;color:#F0F0F0;margin-bottom:8px">%s<span style="color:#E8FF00">_</span></div>
+      <div style="color:#888;font-size:13px;line-height:1.6">%s</div>
+    </div>
+    ` + goBackLink + `
+  </div>
+</body>
+</html>`
+
+var errorArt = map[int]string{
+	404: `<pre style="color:#E8FF00;font-size:11px;line-height:1.3;margin-bottom:32px;text-shadow:0 0 20px rgba(232,255,0,.3)">  ██╗  ██╗ ██████╗ ██╗  ██╗
+  ██║  ██║██╔═══██╗██║  ██║
+  ███████║██║   ██║███████║
+  ╚════██║██║   ██║╚════██║
+       ██║╚██████╔╝     ██║
+       ╚═╝ ╚═════╝      ╚═╝</pre>`,
+	500: `<pre style="color:#E8FF00;font-size:11px;line-height:1.3;margin-bottom:32px;text-shadow:0 0 20px rgba(232,255,0,.3)"> ██████╗
+██╔════╝
+███████╗██████╗  ██████╗
+╚════██║╚════██╗██╔═████╗
+ ██████║ ██████╔╝╚██████╔╝
+ ╚═════╝ ╚═════╝  ╚═════╝</pre>`,
+}
+
+func buildErrorHTML(status int, message string) string {
+	title := http.StatusText(status)
+	art := errorArt[status]
+	if art == "" {
+		art = fmt.Sprintf(`<div style="color:#E8FF00;font-size:64px;font-weight:700;margin-bottom:32px;text-shadow:0 0 20px rgba(232,255,0,.3);letter-spacing:-2px">%d</div>`, status)
+	}
+	return fmt.Sprintf(errorPageShell, status, title, status, art, title, message)
 }
