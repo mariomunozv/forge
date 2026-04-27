@@ -224,12 +224,12 @@ var errorArt = map[int]string{
   ╚════██║██║   ██║╚════██║
        ██║╚██████╔╝     ██║
        ╚═╝ ╚═════╝      ╚═╝</pre>`,
-	500: `<pre style="color:#E8FF00;font-size:11px;line-height:1.3;margin-bottom:32px;text-shadow:0 0 20px rgba(232,255,0,.3)"> ██████╗
-██╔════╝
-███████╗██████╗  ██████╗
-╚════██║╚════██╗██╔═████╗
- ██████║ ██████╔╝╚██████╔╝
- ╚═════╝ ╚═════╝  ╚═════╝</pre>`,
+	500: `<pre style="color:#E8FF00;font-size:11px;line-height:1.3;margin-bottom:32px;text-shadow:0 0 20px rgba(232,255,0,.3)">███████╗  ██████╗  ██████╗
+██╔════╝ ██╔═══██╗██╔═══██╗
+███████╗ ██║   ██║██║   ██║
+╚════██║ ██║   ██║██║   ██║
+ ██████╔╝╚██████╔╝╚██████╔╝
+ ╚═════╝  ╚═════╝  ╚═════╝</pre>`,
 }
 
 func buildErrorHTML(status int, message string) string {
