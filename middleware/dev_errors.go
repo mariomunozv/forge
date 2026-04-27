@@ -14,24 +14,90 @@ import (
 )
 
 // DevErrors returns a middleware that renders a detailed HTML error page for
-// panics and handler errors. Only use in development — replace with Recovery() in prod.
+// panics, handler errors, and explicit 5xx responses (ctx.Error(5xx, ...)).
+// Only use in development — replace with Recovery() in prod.
 func DevErrors() forge.MiddlewareFunc {
 	return func(next forge.HandlerFunc) forge.HandlerFunc {
 		return func(ctx *forge.Context) (err error) {
+			rec := &responseRecorder{original: ctx.Response, code: http.StatusOK}
+			ctx.Response = rec
+
 			defer func() {
 				if r := recover(); r != nil {
+					ctx.Response = rec.original
 					renderDevError(ctx, fmt.Sprintf("%v", r), debug.Stack())
 					err = nil
 				}
 			}()
 
 			if handlerErr := next(ctx); handlerErr != nil {
+				ctx.Response = rec.original
 				renderDevError(ctx, handlerErr.Error(), debug.Stack())
 				return nil
 			}
+
+			if rec.code >= 500 {
+				ctx.Response = rec.original
+				renderDevError(ctx, rec.errorMessage(), debug.Stack())
+				return nil
+			}
+
+			rec.flush()
 			return nil
 		}
 	}
+}
+
+// responseRecorder buffers the response so DevErrors can intercept 5xx writes.
+type responseRecorder struct {
+	original http.ResponseWriter
+	code     int
+	body     strings.Builder
+	headers  http.Header
+	written  bool
+}
+
+func (r *responseRecorder) Header() http.Header {
+	if r.headers == nil {
+		r.headers = make(http.Header)
+	}
+	return r.headers
+}
+
+func (r *responseRecorder) WriteHeader(code int) {
+	if !r.written {
+		r.code = code
+	}
+}
+
+func (r *responseRecorder) Write(b []byte) (int, error) {
+	r.written = true
+	return r.body.Write(b)
+}
+
+func (r *responseRecorder) errorMessage() string {
+	body := r.body.String()
+	// try to extract "message" from JSON envelope: {"error":{"message":"..."}}
+	if i := strings.Index(body, `"message":"`); i >= 0 {
+		rest := body[i+len(`"message":"`):]
+		if end := strings.Index(rest, `"`); end >= 0 {
+			return rest[:end]
+		}
+	}
+	if body != "" {
+		return body
+	}
+	return http.StatusText(r.code)
+}
+
+func (r *responseRecorder) flush() {
+	for k, vals := range r.headers {
+		for _, v := range vals {
+			r.original.Header().Add(k, v)
+		}
+	}
+	r.original.WriteHeader(r.code)
+	fmt.Fprint(r.original, r.body.String())
 }
 
 // --- data types ---

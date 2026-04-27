@@ -47,10 +47,32 @@ func TestDevErrors_CatchesHandlerError(t *testing.T) {
 		t.Fatalf("expected no error, got: %v", err)
 	}
 
-	// Handler error renders the JSON error — DevErrors only intercepts non-nil errors
-	// returned *after* the response is written. In this case ctx.Error writes + returns nil.
+	// 4xx errors pass through normally — DevErrors only intercepts 5xx.
 	if w.Code != http.StatusUnprocessableEntity {
 		t.Errorf("expected 422, got %d", w.Code)
+	}
+}
+
+func TestDevErrors_Intercepts5xx(t *testing.T) {
+	handler := func(ctx *forge.Context) error {
+		return ctx.Error(http.StatusInternalServerError, "database is down")
+	}
+
+	ctx, w := makeCtx("GET", "/crash")
+	wrapped := middleware.DevErrors()(handler)
+	if err := wrapped(ctx); err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("expected 500, got %d", w.Code)
+	}
+	body := w.Body.String()
+	if !strings.Contains(body, "database is down") {
+		t.Errorf("expected error message in dev error page, got: %s", body)
+	}
+	if !strings.Contains(body, "<!DOCTYPE html>") {
+		t.Error("expected HTML dev error page")
 	}
 }
 
