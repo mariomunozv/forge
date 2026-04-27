@@ -24,7 +24,7 @@ Go web framework with Rails vibes.
 `,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		loadDotEnv(".env")
-		syncForgeMdIfNeeded()
+		syncContextFileIfNeeded()
 	},
 }
 
@@ -59,27 +59,48 @@ func loadDotEnv(path string) {
 	}
 }
 
-// syncForgeMdIfNeeded regenerates FORGE.md if it is missing or was generated
-// by a different CLI version. Runs silently on every forge command.
-func syncForgeMdIfNeeded() {
-	current := strings.TrimPrefix(forgeVersion(), "forge ")
-
-	data, err := os.ReadFile("FORGE.md")
-	if err == nil {
-		firstLine := strings.SplitN(string(data), "\n", 2)[0]
-		inner := strings.TrimPrefix(firstLine, "<!-- forge:")
-		fileVersion := strings.SplitN(inner, " ", 2)[0]
-		if fileVersion == current {
-			return // already up to date
-		}
-	} else if !os.IsNotExist(err) {
-		return // unreadable for another reason, skip silently
+// syncContextFileIfNeeded updates the forge:conventions section of the
+// project's AI context file if the embedded version differs from the CLI.
+func syncContextFileIfNeeded() {
+	path := currentContextFile()
+	if path == "" {
+		return
 	}
 
-	tmplData := struct{ Version string }{Version: current}
-	f := scaffoldFile{path: "FORGE.md", tmpl: forgeMdTmpl}
-	if err := writeTemplate(".", f, tmplData); err == nil {
-		fmt.Printf("\033[90m=> FORGE.md updated to %s\033[0m\n\n", current)
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return
+	}
+
+	current := strings.TrimPrefix(forgeVersion(), "forge ")
+	content := string(raw)
+
+	// Check version stamp on first line: <!-- forge:VERSION -->
+	firstLine := strings.SplitN(content, "\n", 2)[0]
+	fileVersion := strings.TrimSuffix(strings.TrimPrefix(firstLine, "<!-- forge:"), " -->")
+	if fileVersion == current {
+		return
+	}
+
+	// Replace content between markers
+	const startMarker = "<!-- forge:conventions:start -->"
+	const endMarker = "<!-- forge:conventions:end -->"
+	si := strings.Index(content, startMarker)
+	ei := strings.Index(content, endMarker)
+	if si < 0 || ei < 0 || ei <= si {
+		return
+	}
+
+	newContent := content[:si] + startMarker + "\n" + contextConventions + endMarker + content[ei+len(endMarker):]
+
+	// Update version stamp on first line
+	nl := strings.IndexByte(newContent, '\n')
+	if nl >= 0 {
+		newContent = "<!-- forge:" + current + " -->" + newContent[nl:]
+	}
+
+	if err := os.WriteFile(path, []byte(newContent), 0644); err == nil {
+		fmt.Printf("\033[90m=> context file updated to %s\033[0m\n\n", current)
 	}
 }
 

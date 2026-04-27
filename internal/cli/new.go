@@ -52,7 +52,6 @@ func runNew(cmd *cobra.Command, args []string) error {
 	version := time.Now().UTC().Format("20060102150405")
 	files := []scaffoldFile{
 		{path: "CLAUDE.md", tmpl: claudeMdTmpl},
-		{path: "FORGE.md", tmpl: forgeMdTmpl},
 		{path: "go.mod", tmpl: goModTmpl},
 		{path: "main.go", tmpl: mainGoTmpl},
 		{path: ".air.toml", tmpl: airTomlTmpl},
@@ -308,7 +307,6 @@ SESSION_SECRET=change-me-in-production
 
 var gitignoreTmpl = `.env
 tmp/
-FORGE.md
 `
 
 var initialMigrationTmpl = `-- migrate:up
@@ -338,50 +336,9 @@ tmp_dir = "tmp"
   runner = "green"
 `
 
-var claudeMdTmpl = `# {{.AppName}}
-
-@FORGE.md
-
-## Project structure
-` + "```" + `
-app/
-  controllers/   # one file per controller, e.g. posts_controller.go
-  models/        # structs + DB helpers
-  views/
-    layouts/     # application.templ — shared HTML shell
-    <resource>/  # index.templ, show.templ, new.templ, edit.templ
-config/
-  app.go         # route registration — add routes here
-  database.go    # DB connection
-db/
-  migrations/    # .sql files — run with: forge db migrate
-main.go
-` + "```" + `
-
-## Views (templ) — module path for this app
-` + "```" + `go
-// app/views/posts/index.templ
-package posts
-
-import "github.com/{{.AppName}}/app/views/layouts"
-
-type IndexData struct{ Posts []models.Post }
-
-templ Index(data IndexData) {
-    @layouts.Application("Posts") {
-        for _, p := range data.Posts {
-            <div>{ p.Title }</div>
-        }
-    }
-}
-` + "```" + `
-`
-
-var forgeMdTmpl = `<!-- forge:{{.Version}} — run ` + "`forge sync`" + ` to update -->
-
-# Forge conventions
-
-## Stack
+// contextConventions is the auto-generated framework reference section.
+// It lives between the forge:start/end markers and is updated automatically.
+var contextConventions = `## Stack
 - **Go** + **Forge** framework — Rails-like conventions, no magic
 - **templ** — type-safe HTML components (compile-time errors, not runtime)
 - **PostgreSQL** via ` + "`lib/pq`" + `
@@ -492,5 +449,47 @@ forge routes          # list all registered routes
 forge db migrate      # run pending migrations
 forge db rollback     # roll back last migration
 forge db status       # show migration state
+forge agent [name]    # switch AI agent convention: claude, cursor, copilot, windsurf
 ` + "```" + `
+`
+
+var claudeMdTmpl = `<!-- forge:{{.Version}} -->
+# {{.AppName}}
+
+## Project structure
+` + "```" + `
+app/
+  controllers/   # one file per controller, e.g. posts_controller.go
+  models/        # structs + DB helpers
+  views/
+    layouts/     # application.templ — shared HTML shell
+    <resource>/  # index.templ, show.templ, new.templ, edit.templ
+config/
+  app.go         # route registration — add routes here
+  database.go    # DB connection
+db/
+  migrations/    # .sql files — run with: forge db migrate
+main.go
+` + "```" + `
+
+## Views — import path for this app
+` + "```" + `go
+// app/views/posts/index.templ
+package posts
+
+import "github.com/{{.AppName}}/app/views/layouts"
+
+type IndexData struct{ Posts []models.Post }
+
+templ Index(data IndexData) {
+    @layouts.Application("Posts") {
+        for _, p := range data.Posts {
+            <div>{ p.Title }</div>
+        }
+    }
+}
+` + "```" + `
+
+<!-- forge:conventions:start -->
+` + contextConventions + `<!-- forge:conventions:end -->
 `
