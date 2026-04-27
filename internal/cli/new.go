@@ -199,9 +199,12 @@ var configAppTmpl = `package config
 import (
 	"github.com/{{.AppName}}/app/controllers"
 	"github.com/mariomunozv/forge"
+	"github.com/mariomunozv/forge/middleware"
 )
 
 func Setup(app *forge.App) {
+	app.Use(middleware.DevErrors())
+
 	app.Register("home", &controllers.HomeController{})
 	app.GET("/", "home#index")
 }
