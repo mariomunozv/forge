@@ -55,6 +55,18 @@ func (c *Context) WantsJSON() bool {
 	return false
 }
 
+// serveInternalError writes a styled 500 response — JSON for API clients, HTML for browsers.
+// Never exposes error details; use middleware.DevErrors() in development for that.
+func serveInternalError(ctx *Context) error {
+	if ctx.WantsJSON() {
+		return ctx.Error(http.StatusInternalServerError, "internal server error")
+	}
+	ctx.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
+	ctx.Response.WriteHeader(http.StatusInternalServerError)
+	fmt.Fprint(ctx.Response, internalErrorHTML)
+	return nil
+}
+
 // serveNotFound writes a styled 404 response — JSON for API clients, HTML for browsers.
 func serveNotFound(ctx *Context) error {
 	if ctx.WantsJSON() {
@@ -65,6 +77,31 @@ func serveNotFound(ctx *Context) error {
 	fmt.Fprint(ctx.Response, notFoundHTML)
 	return nil
 }
+
+const internalErrorHTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>500 — Internal Server Error</title>
+</head>
+<body style="box-sizing:border-box;margin:0;padding:0;background:#0f0f0f;color:#F0F0F0;font-family:ui-monospace,'SF Mono',Menlo,monospace;min-height:100vh;display:flex;align-items:center;justify-content:center">
+  <div style="max-width:560px;width:100%;padding:32px">
+    <div style="color:#E8FF00;font-size:11px;letter-spacing:4px;margin-bottom:24px;opacity:.7">// 500</div>
+    <pre style="color:#E8FF00;font-size:11px;line-height:1.3;margin-bottom:32px;text-shadow:0 0 20px rgba(232,255,0,.3)"> ██████╗
+██╔════╝
+███████╗██████╗  ██████╗
+╚════██║╚════██╗██╔═████╗
+ ██████║ ██████╔╝╚██████╔╝
+ ╚═════╝ ╚═════╝  ╚═════╝</pre>
+    <div style="border-top:1px solid #252525;padding-top:24px;margin-bottom:24px">
+      <div style="font-size:20px;font-weight:700;color:#F0F0F0;margin-bottom:8px">Internal Server Error<span style="color:#E8FF00">_</span></div>
+      <div style="color:#888;font-size:13px;line-height:1.6">Something went wrong on our end.</div>
+    </div>
+    <a href="/" onclick="event.preventDefault();history.length>1?history.back():window.location.href='/'" style="font-size:12px;color:#555;text-decoration:none;cursor:pointer">← go back</a>
+  </div>
+</body>
+</html>`
 
 const notFoundHTML = `<!DOCTYPE html>
 <html lang="en">

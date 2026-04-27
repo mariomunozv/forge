@@ -93,7 +93,7 @@ func (r *Router) serve(w http.ResponseWriter, req *http.Request, middleware []Mi
 
 	final := applyMiddleware(routeMatcher, middleware)
 	if err := final(ctx); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		serveInternalError(ctx)
 	}
 }
 
